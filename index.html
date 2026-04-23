@@ -22,7 +22,6 @@
         .input-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
         .input-row input, .input-row select { width: 75px; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; }
 
-        /* 커스텀 사이즈 입력창 애니메이션 */
         #customSizeArea { background: #f8fafc; padding: 10px; border-radius: 8px; margin-top: 5px; display: none; border: 1px dashed #3498db; }
 
         .preview-zone { height: 750px; background: #2c3e50; border-radius: 12px; perspective: 2500px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
@@ -36,8 +35,9 @@
 
         .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-primary { background: var(--accent); color: white; grid-column: span 2; font-size: 16px; }
+        .btn-primary { background: var(--accent); color: white; grid-column: span 2; font-size: 16px; margin-bottom: 5px; }
         .btn-secondary { background: #eee; color: #333; font-size: 13px; }
+        .btn-file { background: #34495e; color: white; grid-column: span 2; font-size: 14px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -73,7 +73,6 @@
             <div id="customSizeArea">
                 <div class="input-row"><label>가로 (mm)</label><input type="number" id="cWidth" value="152" oninput="updateLayout()"></div>
                 <div class="input-row"><label>세로 (mm)</label><input type="number" id="cHeight" value="225" oninput="updateLayout()"></div>
-                <p style="font-size:10px; color:#3498db; margin:5px 0 0;">* 신국판: 152x225, 46판: 128x188</p>
             </div>
             
             <div class="group-title">수동 여백 설정 (mm)</div>
@@ -88,16 +87,19 @@
                 <button class="btn btn-primary" id="runBtn" onclick="runAI()">2.5-Flash 글로벌 분석 가동</button>
                 <button class="btn btn-secondary" onclick="exportPDF()">💾 PDF 저장</button>
                 <button class="btn btn-secondary" onclick="window.print()">🖨️ 인쇄</button>
+                
+                <input type="file" id="fileInput" accept=".txt,.pdf" style="display:none;" onchange="handleFile(this.files[0])">
+                <button class="btn btn-file" onclick="document.getElementById('fileInput').click()">📁 원고 불러오기 (PDF/TXT)</button>
             </div>
         </div>
 
         <div style="border:2px solid #ddd; border-radius:12px; background:#fff; overflow:hidden;">
-            <textarea id="input" style="width:100%; height:100%; border:none; padding:15px; resize:none; font-size:14px;" placeholder="원고를 입력하세요. 설정한 판형에 맞춰 자동 배치됩니다."></textarea>
+            <textarea id="input" style="width:100%; height:100%; border:none; padding:15px; resize:none; font-size:14px;" placeholder="PDF 파일을 드래그하거나 아래 버튼으로 원고를 불러오세요."></textarea>
         </div>
 
         <div class="preview-zone">
             <div id="printArea">
-                <div id="output" class="content-body">지능형 커스텀 판형 프리뷰...</div>
+                <div id="output" class="content-body">파일을 불러온 후 분석을 시작하세요.</div>
                 <div class="page-num">- 1 -</div>
             </div>
         </div>
@@ -105,7 +107,37 @@
 </div>
 
 <script>
+    const pdfjs = window['pdfjs-dist/build/pdf'];
+    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+
     let currentLang = 'ko';
+
+    // 파일 처리 함수
+    async function handleFile(file) {
+        if (!file) return;
+        const output = document.getElementById('output');
+        
+        if (file.type === "application/pdf") {
+            output.innerText = "PDF에서 텍스트 추출 중...";
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
+                let fullText = "";
+                for(let i=1; i<=pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    fullText += content.items.map(s => s.str).join(" ") + "\n\n";
+                }
+                document.getElementById('input').value = fullText;
+                output.innerText = "PDF 로드 완료. 분석 버튼을 누르세요.";
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => document.getElementById('input').value = e.target.result;
+            reader.readAsText(file);
+        }
+    }
 
     function toggleCustomSize() {
         const pSize = document.getElementById('pSize').value;
@@ -118,7 +150,6 @@
         currentLang = lang;
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-        
         if(lang === 'ko') {
             document.getElementById('pSize').value = "A4";
             applyPreset(20, 15, 30, 30, 15, 15);
@@ -133,35 +164,27 @@
     }
 
     function applyPreset(t, h, l, r, b, f) {
-        document.getElementById('mTop').value = t;
-        document.getElementById('mHead').value = h;
-        document.getElementById('mLeft').value = l;
-        document.getElementById('mRight').value = r;
-        document.getElementById('mBottom').value = b;
-        document.getElementById('mFoot').value = f;
+        document.getElementById('mTop').value = t; document.getElementById('mHead').value = h;
+        document.getElementById('mLeft').value = l; document.getElementById('mRight').value = r;
+        document.getElementById('mBottom').value = b; document.getElementById('mFoot').value = f;
     }
 
     function updateLayout() {
         const page = document.getElementById('printArea');
         const out = document.getElementById('output');
         const size = document.getElementById('pSize').value;
-        
-        // 용지 크기 물리적 계산 (1mm = 2px 기준 시각화)
         if(size === "custom") {
             const cw = document.getElementById('cWidth').value;
             const ch = document.getElementById('cHeight').value;
-            page.style.width = (cw * 2) + "px"; 
-            page.style.height = (ch * 2) + "px";
+            page.style.width = (cw * 1.8) + "px"; page.style.height = (ch * 1.8) + "px";
         } else {
-            if(size === "A4") { page.style.width = "420px"; page.style.height = "594px"; }
-            else if(size === "Letter") { page.style.width = "432px"; page.style.height = "558px"; }
-            else if(size === "B4") { page.style.width = "514px"; page.style.height = "728px"; }
-            else if(size === "A5") { page.style.width = "296px"; page.style.height = "420px"; }
+            if(size === "A4") { page.style.width = "400px"; page.style.height = "565px"; }
+            else if(size === "Letter") { page.style.width = "410px"; page.style.height = "530px"; }
+            else if(size === "B4") { page.style.width = "480px"; page.style.height = "680px"; }
+            else if(size === "A5") { page.style.width = "280px"; page.style.height = "400px"; }
         }
-
         const pt = parseFloat(document.getElementById('mTop').value) + parseFloat(document.getElementById('mHead').value);
         const pb = parseFloat(document.getElementById('mBottom').value) + parseFloat(document.getElementById('mFoot').value);
-        
         out.style.padding = `${pt}mm ${document.getElementById('mRight').value}mm ${pb}mm ${document.getElementById('mLeft').value}mm`;
         out.style.fontSize = `${document.getElementById('fSize').value}px`;
     }
@@ -170,13 +193,11 @@
         const k = document.getElementById('key').value;
         const t = document.getElementById('input').value;
         if(!k) return alert("API Key를 입력하세요.");
-        
-        document.getElementById('output').innerText = "2.5-Flash 엔진이 판형에 맞춰 정밀 분석 중...";
-        
+        document.getElementById('output').innerText = "2.5-Flash 엔진 분석 중...";
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
                 method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({contents: [{parts: [{text: `너는 글로벌 출판 편집장이야. 다음 원고를 분석하고 교정해줘. 판형과 여백 규격을 고려해서 가독성을 극대화해줘. \n\n원고: ${t}`}]}]})
+                body: JSON.stringify({contents: [{parts: [{text: `글로벌 편집장으로서 다음 원고를 분석하고 교정해줘: \n\n${t}`}]}]})
             });
             const data = await res.json();
             document.getElementById('output').innerText = data.candidates[0].content.parts[0].text;
@@ -187,31 +208,12 @@
     function exportPDF() {
         const element = document.getElementById('printArea');
         element.style.transform = "none";
-        
         const size = document.getElementById('pSize').value;
-        let pdfFormat;
-        
-        if(size === "custom") {
-            const cw = document.getElementById('cWidth').value;
-            const ch = document.getElementById('cHeight').value;
-            pdfFormat = [parseFloat(cw), parseFloat(ch)];
-        } else {
-            pdfFormat = size.toLowerCase();
-        }
-
-        const opt = {
-            margin: 0,
-            filename: `EAIM_Custom_Publishing.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3 },
-            jsPDF: { unit: 'mm', format: pdfFormat, orientation: 'portrait' }
-        };
-        
-        html2pdf().set(opt).from(element).save().then(() => {
+        let pdfFormat = size === "custom" ? [parseFloat(document.getElementById('cWidth').value), parseFloat(document.getElementById('cHeight').value)] : size.toLowerCase();
+        html2pdf().set({ margin: 0, filename: 'EAIM_Book.pdf', jsPDF: { unit: 'mm', format: pdfFormat } }).from(element).save().then(() => {
             element.style.transform = "rotateY(12deg) rotateX(3deg)";
         });
     }
-
     updateLayout();
 </script>
 </body>
