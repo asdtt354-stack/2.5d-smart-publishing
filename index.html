@@ -70,4 +70,57 @@
         const text = document.getElementById('rawInput').value;
 
         if (!apiKey) return alert("API Key를 입력해주세요.");
-        if (!text) return alert("원
+        if (!text) return alert("원고를 입력해주세요.");
+
+        document.getElementById('p-text').innerText = "AI 분석 중... 잠시만 기다려주세요.";
+
+        try {
+            // 최신 모델명인 gemini-1.5-flash 사용
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `다음 원고의 오타와 띄어쓰기를 교정하고 가독성 좋게 다듬어줘. 핵심 내용은 유지해: \n\n${text}` }] }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                // 상세 에러 메시지 출력
+                throw new Error(data.error.message);
+            }
+
+            const correctedText = data.candidates[0].content.parts[0].text;
+            document.getElementById('p-text').innerText = correctedText;
+            applyVisualLayout();
+            alert("분석이 완료되었습니다!");
+
+        } catch (error) {
+            console.error(error);
+            alert("오류 발생: " + error.message + "\n\n키가 정확한지 확인해 주세요.");
+            document.getElementById('p-text').innerText = "오류로 인해 중단되었습니다.";
+        }
+    }
+
+    function applyVisualLayout() {
+        const bg = document.getElementById('p-bg');
+        const txt = document.getElementById('p-text');
+        if (currentStyle === '2D') {
+            bg.style.transform = "none";
+            txt.style.transform = "none";
+        } else if (currentStyle === '2.5D-S') {
+            bg.style.transform = "rotateY(5deg) translateZ(-20px)";
+            txt.style.transform = "translateZ(30px)";
+        } else if (currentStyle === '2.5D-H') {
+            bg.style.transform = "rotateY(15deg) rotateX(5deg) translateZ(-50px)";
+            txt.style.transform = "translateZ(100px) rotateY(-5deg)";
+        }
+    }
+    setStyle('2D'); // 초기화
+</script>
+
+</body>
+</html>
