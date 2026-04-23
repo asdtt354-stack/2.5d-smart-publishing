@@ -2,61 +2,135 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>EAIM AI Engine (2.5-Flash)</title>
+    <title>EAIM Custom Engine (2.5-Flash)</title>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f5f6fa; }
-        body { font-family: sans-serif; background: var(--bg); padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 95%; max-width: 1200px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .api-config { background: #fff9db; padding: 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; }
-        .status-on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .drop-zone { height: 500px; border: 3px dashed #ddd; border-radius: 10px; position: relative; }
-        textarea { width: 100%; height: 100%; border: none; padding: 15px; box-sizing: border-box; resize: none; font-size: 14px; background: transparent; }
-        .preview-zone { height: 500px; background: #111; border-radius: 10px; color: #fff; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 14px; }
-        .btn-group { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
-        button { padding: 12px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border: 1px solid #333; }
-        .btn-primary { background: var(--primary); color: white; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .app-container { width: 98%; max-width: 1500px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        .api-config { display: flex; gap: 10px; align-items: center; background: #fff9db; padding: 10px; border-radius: 8px; }
+
+        /* 레이아웃: 설정 | 입력 | 출력 */
+        .main-layout { display: grid; grid-template-columns: 250px 1fr 1.2fr; gap: 20px; }
+
+        /* 1. 설정 패널 */
+        .config-panel { background: #edf2f7; padding: 20px; border-radius: 10px; font-size: 14px; }
+        .config-group { margin-bottom: 15px; }
+        .config-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .config-group input, .config-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
+
+        /* 2. 입력창 */
+        .input-zone { height: 700px; border: 2px solid #ddd; border-radius: 10px; }
+        textarea { width: 100%; height: 100%; border: none; padding: 15px; resize: none; font-size: 14px; box-sizing: border-box; }
+
+        /* 3. 2.5D 출력창 */
+        .preview-zone { height: 700px; background: #444; border-radius: 10px; overflow: hidden; perspective: 2000px; display: flex; justify-content: center; align-items: center; position: relative; }
+        
+        /* 동적 용지 스타일 */
+        #hwpPage { 
+            background: white; position: relative; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            transform: rotateY(15deg) rotateX(5deg);
+            transition: 0.5s; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        .page-content { flex: 1; overflow-y: auto; color: #222; text-align: justify; white-space: pre-wrap; word-break: break-all; }
+        .page-footer { height: 30px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #666; border-top: 1px dashed #eee; }
+
+        .btn-run { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="header">
-        <h2>EAIM Engine 2.5-Flash</h2>
+        <h2>EAIM Smart Publishing Engine <span style="font-size: 0.6em; color: #3498db;">2.5-Flash</span></h2>
         <div class="api-config">
-            <div id="dot" class="status-dot"></div>
-            <input type="password" id="key" placeholder="API KEY">
-            <button onclick="checkKey()">연결 확인</button>
+            <input type="password" id="key" placeholder="Gemini API Key" style="width:180px;">
+            <button onclick="checkKey()">연결</button>
+            <div id="dot" style="width:10px; height:10px; border-radius:50%; background:#ccc;"></div>
         </div>
     </div>
 
     <div class="main-layout">
-        <div class="drop-zone">
-            <textarea id="input" placeholder="여기에 파일을 던지거나 글을 쓰세요."></textarea>
+        <div class="config-panel">
+            <h3 style="margin-top:0;">편집 설정</h3>
+            <div class="config-group">
+                <label>용지 크기</label>
+                <select id="pageSize" onchange="updateLayout()">
+                    <option value="A4">A4 (210x297mm)</option>
+                    <option value="B4">B4 (257x364mm)</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label>글자 크기 (px)</label>
+                <input type="number" id="fontSize" value="14" oninput="updateLayout()">
+            </div>
+            <div class="config-group">
+                <label>상하 여백 (mm)</label>
+                <input type="number" id="marginV" value="20" oninput="updateLayout()">
+            </div>
+            <div class="config-group">
+                <label>좌우 여백 (mm)</label>
+                <input type="number" id="marginH" value="25" oninput="updateLayout()">
+            </div>
+            <hr>
+            <button class="btn-run" id="runBtn" onclick="runAI()" disabled>2.5-Flash 분석 가동</button>
+            <p style="font-size: 11px; color: #718096; margin-top:10px;">* 학교 정기고사 및 설명서 규격 자동 반영 가능</p>
         </div>
-        <div id="output" class="preview-zone">결과가 여기에 표시됩니다.</div>
-    </div>
 
-    <div class="btn-group">
-        <input type="file" id="file" accept=".txt,.pdf" style="display:none" onchange="loadFile(this)">
-        <button onclick="document.getElementById('file').click()">📁 파일 첨부</button>
-        <button id="run" class="btn-primary" onclick="runAI()" disabled>2.5-Flash 분석 시작</button>
+        <div class="input-zone">
+            <textarea id="input" placeholder="원고를 입력하거나 PDF를 첨부하세요."></textarea>
+        </div>
+
+        <div class="preview-zone">
+            <div id="hwpPage">
+                <div id="output" class="page-content">설정값에 따라 레이아웃이 실시간으로 변합니다.</div>
+                <div class="page-footer">- 1 -</div>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top:20px; text-align:center;">
+        <input type="file" id="file" accept=".pdf,.txt" style="display:none" onchange="loadFile(this)">
+        <button onclick="document.getElementById('file').click()" style="padding:10px 20px; cursor:pointer;">📁 파일 불러오기 (PDF/TXT)</button>
     </div>
 </div>
 
 <script>
     const pdfjs = window['pdfjs-dist/build/pdf'];
     pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+    
+    // 레이아웃 실시간 업데이트 함수
+    function updateLayout() {
+        const page = document.getElementById('hwpPage');
+        const output = document.getElementById('output');
+        const size = document.getElementById('pageSize').value;
+        const fs = document.getElementById('fontSize').value;
+        const mV = document.getElementById('marginV').value;
+        const mH = document.getElementById('marginH').value;
 
-    let verified = false;
+        // 용지 비율 설정
+        if(size === "A4") {
+            page.style.width = "420px"; page.style.height = "594px";
+        } else {
+            page.style.width = "460px"; page.style.height = "650px";
+        }
 
-    // 1. 키 확인 (성애님 전용 2.5-Flash 모델)
+        // 여백 및 폰트 적용
+        output.style.padding = `${mV}mm ${mH}mm`;
+        output.style.fontSize = `${fs}px`;
+    }
+
+    // 초기 레이아웃 적용
+    updateLayout();
+
+    // 키 확인 및 파일 로드 로직 (기존과 동일)
     async function checkKey() {
         const k = document.getElementById('key').value.trim();
-        if(!k) return alert("키를 입력하세요.");
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
                 method: "POST", headers: {"Content-Type": "application/json"},
@@ -64,19 +138,17 @@
             });
             const data = await res.json();
             if(data.error) throw new Error(data.error.message);
-            verified = true;
-            document.getElementById('dot').className = 'status-dot status-on';
-            document.getElementById('run').disabled = false;
+            document.getElementById('dot').style.background = "#2ecc71";
+            document.getElementById('runBtn').disabled = false;
             alert("2.5-Flash 엔진 연결 성공!");
-        } catch(e) { alert("연결 실패: " + e.message); }
+        } catch(e) { alert("연결 실패"); }
     }
 
-    // 2. 파일 로드 (PDF/TXT)
     async function loadFile(input) {
         const file = input.files[0];
         if(!file) return;
+        const reader = new FileReader();
         if(file.type === "application/pdf") {
-            const reader = new FileReader();
             reader.onload = async function() {
                 const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
                 let text = "";
@@ -89,25 +161,23 @@
             };
             reader.readAsArrayBuffer(file);
         } else {
-            const reader = new FileReader();
             reader.onload = (e) => document.getElementById('input').value = e.target.result;
             reader.readAsText(file);
         }
     }
 
-    // 3. AI 분석 (2.5-Flash 고정)
     async function runAI() {
         const k = document.getElementById('key').value.trim();
         const t = document.getElementById('input').value;
-        if(!t) return alert("내용이 없습니다.");
-        document.getElementById('output').innerText = "2.5-Flash 분석 중...";
+        const output = document.getElementById('output');
+        output.innerText = "2.5-Flash 엔진 분석 중...";
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
                 method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({contents: [{parts: [{text: `교정해줘: \n${t}`}]}]})
+                body: JSON.stringify({contents: [{parts: [{text: `너는 학교 정기고사 및 교육자료전 전문 편집장이야. 다음 원고를 깔끔하게 교정해줘: \n${t}`}]}]})
             });
             const data = await res.json();
-            document.getElementById('output').innerText = data.candidates[0].content.parts[0].text;
+            output.innerText = data.candidates[0].content.parts[0].text;
         } catch(e) { alert(e.message); }
     }
 </script>
