@@ -6,24 +6,33 @@
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f5f6fa; }
         body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 95%; max-width: 1200px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .app-container { width: 95%; max-width: 1250px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+        
         .api-config { background: #fff9db; padding: 12px 20px; border-radius: 8px; border: 1px solid #fab005; display: flex; gap: 12px; align-items: center; }
-        input[type="password"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 280px; font-size: 14px; }
-        .btn-verify { background: #fab005; color: #856404; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-verify:hover { background: #f0a000; }
+        input[type="password"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 280px; }
+        .btn-verify { background: #fab005; color: #856404; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
         .status-on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+
         .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px; }
-        textarea { width: 100%; height: 520px; padding: 20px; border: 1px solid #e1e8ed; border-radius: 12px; font-size: 15px; line-height: 1.7; box-sizing: border-box; resize: none; }
-        .preview-zone { height: 520px; background: #1a1a1a; border-radius: 12px; position: relative; overflow: hidden; perspective: 1500px; }
+        
+        /* 드래그 앤 드롭 구역 스타일 */
+        .drop-zone { width: 100%; height: 550px; border: 2px dashed #cbd5e0; border-radius: 12px; position: relative; transition: 0.3s; background: #fff; }
+        .drop-zone.over { border-color: var(--accent); background: #e7f5ff; }
+        textarea { width: 100%; height: 100%; padding: 20px; border: none; background: transparent; font-size: 15px; line-height: 1.7; box-sizing: border-box; resize: none; z-index: 2; position: relative; }
+        .drop-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #a0aec0; text-align: center; pointer-events: none; z-index: 1; }
+
+        .preview-zone { height: 550px; background: #1a1a1a; border-radius: 12px; position: relative; overflow: hidden; perspective: 1500px; }
         .layer { position: absolute; transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1); padding: 30px; box-sizing: border-box; }
         .layer-paper { background: white; z-index: 1; width: 85%; height: 92%; top: 4%; left: 7.5%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .layer-content { z-index: 3; width: 75%; top: 8%; left: 12.5%; color: #333; font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-y: auto; height: 82%; }
-        .button-group { margin-top: 30px; display: flex; gap: 15px; justify-content: center; }
+        
+        .button-group { margin-top: 30px; display: flex; gap: 15px; justify-content: center; align-items: center; }
         button { padding: 14px 40px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
         .btn-main { background: var(--primary); color: white; border: none; }
-        .btn-main:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-file { background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; padding: 14px 25px; }
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
@@ -32,7 +41,7 @@
     <div class="header">
         <div>
             <h1 style="margin:0; font-size: 26px; color: var(--primary);">EAIM AI Publishing Engine</h1>
-            <p style="margin:5px 0 0; color: #7f8c8d;">지능형 원고 분석 및 2.5D 레이아웃 (2.5-Flash Edition)</p>
+            <p style="margin:5px 0 0; color: #7f8c8d;">2.5-Flash 지능형 문서 로더 & 편집 엔진</p>
         </div>
         <div class="api-config">
             <div id="statusDot" class="status-dot"></div>
@@ -42,87 +51,105 @@
     </div>
 
     <div class="main-layout">
-        <textarea id="rawInput" placeholder="교육자료전 설명서 원고를 이곳에 입력하세요."></textarea>
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-label" id="dropLabel">
+                파일을 여기에 끌어넣거나<br>아래 버튼으로 문서를 첨부하세요
+            </div>
+            <textarea id="rawInput"></textarea>
+        </div>
+
         <div class="preview-zone">
             <div class="layer layer-paper" id="p-bg"></div>
-            <div class="layer layer-content" id="p-text">API 키 확인 후 '분석' 버튼을 누르면 정밀 교정이 시작됩니다.</div>
+            <div class="layer layer-content" id="p-text">문서를 불러온 후 '분석' 버튼을 눌러주세요.</div>
         </div>
     </div>
 
     <div class="button-group">
-        <button id="runBtn" class="btn-main" onclick="processDocument()" disabled>원고 정밀 분석 및 2.5D 생성</button>
+        <label class="btn-file" for="fileInput">📁 문서 첨부 (.txt)</label>
+        <input type="file" id="fileInput" accept=".txt,.md,.text" onchange="handleFileSelect(event)">
+        <button id="runBtn" class="btn-main" onclick="processDocument()" disabled>원고 정밀 분석 가동 (2.5-Flash)</button>
     </div>
 </div>
 
 <script>
     let isVerified = false;
+    const dropZone = document.getElementById('dropZone');
+    const rawInput = document.getElementById('rawInput');
+    const dropLabel = document.getElementById('dropLabel');
 
-    // 1. [수정됨] 2.5-Flash 모델로 키 유효성 확인
+    // 1. 드래그 앤 드롭 이벤트 처리
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('over'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('over'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('over');
+        const file = e.dataTransfer.files[0];
+        readFile(file);
+    });
+
+    // 2. 파일 선택 버튼 처리
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        readFile(file);
+    }
+
+    // 3. 파일 읽기 로직
+    function readFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            rawInput.value = e.target.result;
+            dropLabel.style.display = 'none'; // 파일이 들어오면 안내 문구 숨김
+        };
+        reader.readAsText(file);
+    }
+
+    // 4. API 키 확인 (2.5-Flash 고정)
     async function verifyKey() {
         const apiKey = document.getElementById('apiKey').value.trim();
-        if (!apiKey) return alert("키를 먼저 입력해주세요.");
-
+        if (!apiKey) return alert("키를 입력해주세요.");
         try {
-            // 성애님의 요청대로 검증 단계도 gemini-2.5-flash 엔진을 사용합니다.
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: [{ parts: [{ text: "hi" }] }] })
             });
-            
             const data = await response.json();
             if (data.error) throw new Error(data.error.message);
-
             isVerified = true;
             document.getElementById('statusDot').classList.add('status-on');
             document.getElementById('runBtn').disabled = false;
-            alert("2.5-Flash 엔진 연결 성공! 이제 원고 분석이 가능합니다.");
+            alert("2.5-Flash 엔진 연결 성공!");
         } catch (e) {
-            alert("연결 실패: " + e.message);
-            isVerified = false;
-            document.getElementById('statusDot').classList.remove('status-on');
-            document.getElementById('runBtn').disabled = true;
+            alert("실패: " + e.message);
         }
     }
 
-    // 2. 2.5-Flash 지능형 분석 엔진
+    // 5. 2.5-Flash 정밀 분석
     async function processDocument() {
-        if(!isVerified) return alert("키 확인을 먼저 완료해주세요.");
-        
+        if(!isVerified) return alert("키 확인이 필요합니다.");
         const apiKey = document.getElementById('apiKey').value.trim();
-        const text = document.getElementById('rawInput').value;
-        if (!text) return alert("원고를 입력해주세요.");
+        const text = rawInput.value;
+        if (!text) return alert("분석할 내용이 없습니다.");
 
-        document.getElementById('p-text').innerText = "성애님의 2.5-Flash 엔진이 정밀 분석 중입니다...";
+        document.getElementById('p-text').innerText = "2.5-Flash 엔진이 100페이지 분량급 원고를 정밀 분석 중...";
 
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-            
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ 
-                        parts: [{ text: `너는 교육자료전 전문 편집장이야. 다음 원고의 오타, 띄어쓰기를 완벽하게 교정하고 가독성을 높여줘: \n\n${text}` }] 
-                    }]
+                    contents: [{ parts: [{ text: `너는 교육자료전 전문 편집장이야. 다음 대용량 원고의 오타, 띄어쓰기를 완벽하게 교정해줘: \n\n${text}` }] }]
                 })
             });
-
             const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-
             const correctedText = data.candidates[0].content.parts[0].text;
             document.getElementById('p-text').innerText = correctedText;
-            
-            // 시각적 입체 효과 적용
-            document.getElementById('p-bg').style.transform = "rotateY(10deg) rotateX(2deg) translateZ(-30px)";
+            document.getElementById('p-bg').style.transform = "rotateY(10deg) translateZ(-30px)";
             document.getElementById('p-text').style.transform = "translateZ(50px)";
-            
-            alert("2.5-Flash 분석 및 레이아웃 생성이 완료되었습니다!");
-
         } catch (error) {
-            alert("분석 오류: " + error.message);
-            document.getElementById('p-text').innerText = "오류 발생: 모델 명칭 또는 키를 확인해 주세요.";
+            alert("오류: " + error.message);
         }
     }
 </script>
