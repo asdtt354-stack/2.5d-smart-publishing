@@ -2,81 +2,78 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>EAIM Global Pro v3 (2.5-Flash)</title>
+    <title>EAIM Global Pro v4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
     <style>
         :root { --primary: #1a1a1a; --accent: #3498db; --bg: #f0f2f5; }
         body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .app-container { width: 98%; max-width: 1600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .main-layout { display: grid; grid-template-columns: 320px 1fr 1.2fr; gap: 25px; }
+        .main-layout { display: grid; grid-template-columns: 320px 1fr 1.2fr; gap: 25px; margin-top: 20px; }
 
-        /* 설정 패널 */
-        .config-panel { background: #fff; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; height: 800px; overflow-y: auto; }
-        .group-title { font-size: 14px; font-weight: bold; margin: 15px 0 8px; color: #333; border-left: 4px solid var(--accent); padding-left: 8px; }
-        .input-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
-        .input-row input { width: 60px; padding: 4px; border: 1px solid #cbd5e0; border-radius: 4px; }
+        /* 입력창 강화: 불러온 텍스트가 어떻게 들어왔는지 확인용 */
+        .editor-zone { display: flex; flex-direction: column; gap: 10px; }
+        #input { width: 100%; height: 750px; border: 1px solid #ddd; border-radius: 12px; padding: 15px; font-size: 13px; line-height: 1.6; background: #fafafa; }
 
-        /* [핵심] 출력 영역 - 여러 장의 종이가 보이도록 설정 */
+        /* 프리뷰 존: 실제 종이 느낌 */
         .preview-zone { height: 800px; background: #2c3e50; border-radius: 12px; overflow-y: auto; padding: 40px 0; perspective: 2000px; }
-        
-        #pageContainer { width: 210mm; margin: 0 auto; } /* A4 너비 고정 */
-        
+        #pageContainer { width: 210mm; margin: 0 auto; }
         .paper { 
             background: white; width: 210mm; min-height: 297mm; margin-bottom: 30px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; 
-            box-sizing: border-box; transform: rotateY(5deg); transition: 0.3s;
-            overflow: hidden; word-break: break-all;
+            box-sizing: border-box; transition: 0.3s; padding: 0; overflow: hidden;
         }
 
-        /* [필살기] 표 테두리 스타일 */
-        .content-body { color: #111; line-height: 1.8; text-align: justify; width: 100%; box-sizing: border-box; }
-        .content-body table { width: 100% !important; border-collapse: collapse !important; margin: 15px 0 !important; border: 2px solid #000 !important; }
-        .content-body th, .content-body td { border: 1px solid #000 !important; padding: 10px !important; text-align: center; }
-        .content-body th { background: #f2f2f2 !important; font-weight: bold; }
+        /* [핵심] 표(Table) 시각화 스타일 - 아주 진한 선 */
+        .content-body { color: #111; line-height: 1.8; text-align: justify; box-sizing: border-box; }
+        .content-body table { width: 100% !important; border-collapse: collapse !important; margin: 20px 0 !important; border: 2px solid #000 !important; }
+        .content-body th, .content-body td { border: 1.2px solid #000 !important; padding: 12px !important; text-align: center; }
+        .content-body th { background: #e9ecef !important; font-weight: bold; }
 
-        /* 페이지 넘김 방지용 설정 */
-        .html2pdf__page-break { display: block; height: 1px; page-break-before: always; }
-
-        .btn-run { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
-        .btn-save { width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-run { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; display: inline-block; margin-left: 10px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <div class="top-bar">
-        <h2>EAIM <span style="color:var(--accent)">Global Pro v3</span></h2>
-        <div style="display:flex; gap:10px; align-items:center;">
-            <input type="password" id="key" placeholder="Gemini API Key" style="padding:6px;">
-            <div id="dot" style="width:10px; height:10px; border-radius:50%; background:#ccc;"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>EAIM <span style="color:var(--accent)">Engine v4 (표 구조 복원형)</span></h2>
+        <div>
+            <input type="password" id="key" placeholder="Gemini API Key" style="padding:8px; border-radius:5px; border:1px solid #ddd; width:250px;">
+            <span id="dot" class="status-dot"></span>
         </div>
     </div>
 
     <div class="main-layout">
-        <div class="config-panel">
-            <div class="group-title">한글(HWP) 표준 여백 (mm)</div>
-            <div class="input-row"><label>위쪽 + 머리말</label><div><input type="number" id="mT" value="20">+<input type="number" id="mH" value="15"></div></div>
-            <div class="input-row"><label>좌 | 우 여백</label><div><input type="number" id="mL" value="30">|<input type="number" id="mR" value="30"></div></div>
-            <div class="input-row"><label>아래 + 꼬리말</label><div><input type="number" id="mB" value="15">+<input type="number" id="mF" value="15"></div></div>
-            <div class="group-title">글자 크기</div>
-            <div class="input-row"><label>본문 크기(px)</label><input type="number" id="fS" value="15" oninput="updateLayout()"></div>
-
-            <button class="btn-run" id="runBtn" onclick="runAI()">2.5-Flash 분석 (표 선 강화)</button>
-            <button class="btn-save" onclick="exportPDF()">💾 PDF 저장 (페이지 자동분할)</button>
+        <div class="config-panel" style="background:#f8fafc; padding:20px; border-radius:12px;">
+            <div style="font-weight:bold; margin-bottom:15px; color:var(--accent);">📌 사용 가이드</div>
+            <p style="font-size:12px; color:#666; line-height:1.6;">
+                1. [원고 불러오기]로 PDF를 선택하세요.<br>
+                2. 입력창에 텍스트가 들어오면, 표 데이터가 섞여있는지 확인하세요.<br>
+                3. [분석/복원]을 누르면 AI가 깨진 데이터를 표로 다시 조립합니다.
+            </p>
             <input type="file" id="fileIn" style="display:none;" onchange="handleFile(this.files[0])">
-            <button onclick="document.getElementById('fileIn').click()" style="width:100%; padding:10px; margin-top:10px; cursor:pointer;">📁 원고 불러오기</button>
+            <button onclick="document.getElementById('fileIn').click()" style="width:100%; padding:12px; background:#34495e; color:white; border:none; border-radius:8px; cursor:pointer; margin-bottom:15px;">📁 1. 원고 불러오기</button>
+            
+            <div style="border-top:1px solid #ddd; padding-top:15px; margin-top:15px;">
+                <label style="font-size:13px; font-weight:bold;">글자 크기 (px)</label>
+                <input type="number" id="fS" value="16" oninput="updateLayout()" style="width:50px; padding:5px; margin-left:10px;">
+            </div>
+            
+            <button class="btn-run" style="margin-top:20px;" onclick="runAI()">🚀 2. 표 구조 분석 및 복원</button>
+            <button onclick="exportPDF()" style="width:100%; padding:15px; background:#2ecc71; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">💾 3. PDF 최종 저장</button>
         </div>
 
-        <div style="border:2px solid #ddd; border-radius:12px; background:#fff;">
-            <textarea id="input" style="width:100%; height:800px; border:none; padding:15px; resize:none;" placeholder="원고를 입력하세요..."></textarea>
+        <div class="editor-zone">
+            <div style="font-weight:bold; font-size:14px;">📥 불러온 원고 데이터 (RAW)</div>
+            <textarea id="input" placeholder="여기에 불러온 글자들이 표시됩니다. 표 데이터가 줄글처럼 보여도 괜찮습니다. AI가 고쳐줄 거예요!"></textarea>
         </div>
 
-        <div class="preview-zone" id="previewZone">
+        <div class="preview-zone">
             <div id="pageContainer">
-                <div class="paper" id="mainPaper">
-                    <div id="output" class="content-body">파일을 불러온 후 분석 버튼을 누르면 한글 규격에 맞춰 표와 텍스트가 배치됩니다.</div>
+                <div class="paper">
+                    <div id="output" class="content-body" style="padding:30mm 30mm 30mm 30mm;">출력 미리보기</div>
                 </div>
             </div>
         </div>
@@ -89,52 +86,46 @@
 
     function updateLayout() {
         const out = document.getElementById('output');
-        const fs = document.getElementById('fS').value;
-        const mt = parseFloat(document.getElementById('mT').value) + parseFloat(document.getElementById('mH').value);
-        const mb = parseFloat(document.getElementById('mB').value) + parseFloat(document.getElementById('mF').value);
-        const ml = document.getElementById('mL').value;
-        const mr = document.getElementById('mR').value;
-
-        out.style.padding = `${mt}mm ${mr}mm ${mb}mm ${ml}mm`;
-        out.style.fontSize = `${fs}px`;
+        out.style.fontSize = document.getElementById('fS').value + "px";
     }
 
     async function handleFile(file) {
         if (!file) return;
+        const inputArea = document.getElementById('input');
+        inputArea.value = "파일에서 데이터를 추출 중입니다...";
+
         const reader = new FileReader();
-        if (file.type === "application/pdf") {
-            reader.onload = async function() {
-                const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
-                let text = "";
-                for(let i=1; i<=pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    text += content.items.map(s => s.str).join(" ") + "\n\n";
-                }
-                document.getElementById('input').value = text;
-            };
-            reader.readAsArrayBuffer(file);
-        } else {
-            reader.onload = (e) => document.getElementById('input').value = e.target.result;
-            reader.readAsText(file);
-        }
+        reader.onload = async function() {
+            const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
+            let text = "";
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                // 텍스트 간격을 유지하며 추출
+                text += content.items.map(s => s.str).join("  ") + "\n\n";
+            }
+            inputArea.value = text;
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     async function runAI() {
         const k = document.getElementById('key').value;
         const t = document.getElementById('input').value;
-        if(!k) return alert("API 키를 입력하세요.");
+        if(!k) return alert("API 키를 넣어주세요!");
         const out = document.getElementById('output');
-        out.innerText = "2.5-Flash 엔진이 표 테두리를 그려내는 중...";
+        out.innerHTML = "<div style='text-align:center; padding:50px;'>🧠 AI가 표 구조를 추론하여 복원 중입니다...</div>";
 
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
                 method: "POST", headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
-                    contents: [{parts: [{text: `너는 글로벌 출판 편집장이야. 다음 원고를 분석해. 
-                    1. 표가 있다면 반드시 HTML <table> 태그를 써서 테두리가 있는 표로 만들어.
-                    2. 내용이 너무 길다면 적절한 위치에 <div class="html2pdf__page-break"></div> 태그를 넣어 페이지를 나눠줘.
-                    \n\n원고: ${t}`}]}]
+                    contents: [{parts: [{text: `너는 문서 복원 전문가야. 
+                    다음은 PDF에서 추출한 텍스트 뭉치인데, 이 안에는 표(Table) 데이터가 섞여 있어. 
+                    1. 흩어진 글자들을 분석해서 원래 표였던 부분은 반드시 <table> 태그를 사용하여 완벽한 표로 복구해.
+                    2. 표의 테두리는 두껍게 설정하고, 헤더는 배경색을 넣어.
+                    3. 전체 내용을 깔끔한 글로벌 표준 문서 양식으로 교정해줘.
+                    \n\n원고 데이터: ${t}`}]}]
                 })
             });
             const data = await res.json();
@@ -142,28 +133,20 @@
             out.innerHTML = html;
             document.getElementById('dot').style.background = "#2ecc71";
             updateLayout();
-        } catch(e) { alert("엔진 오류"); }
+        } catch(e) { alert("분석 실패: " + e); }
     }
 
     function exportPDF() {
         const element = document.getElementById('pageContainer');
-        const paper = document.getElementById('mainPaper');
-        paper.style.transform = "none"; // 저장 시 평면화
-
         const opt = {
             margin: 0,
-            filename: 'EAIM_Professional_Report.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            filename: 'EAIM_Recovered_Report.pdf',
+            html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // 지능형 분할 모드
+            pagebreak: { mode: 'avoid-all' }
         };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            paper.style.transform = "rotateY(5deg)";
-        });
+        html2pdf().set(opt).from(element).save();
     }
-    updateLayout();
 </script>
 </body>
 </html>
