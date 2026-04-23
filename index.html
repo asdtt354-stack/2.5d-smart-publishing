@@ -2,123 +2,113 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>EAIM AI Publishing Engine (2.5-Flash)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <title>EAIM AI Engine (2.5-Flash)</title>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f5f6fa; }
-        body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 95%; max-width: 1250px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-        .api-config { background: #fff9db; padding: 12px 20px; border-radius: 8px; border: 1px solid #fab005; display: flex; gap: 12px; align-items: center; }
-        input[type="password"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 280px; }
-        .btn-verify { background: #fab005; color: #856404; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
+        body { font-family: sans-serif; background: var(--bg); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .app-container { width: 95%; max-width: 1200px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .api-config { background: #fff9db; padding: 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; }
         .status-on { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-        #statusMsg { font-size: 12px; font-weight: bold; color: #856404; }
-
-        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 10px; }
-        .drop-zone { width: 100%; height: 550px; border: 2px dashed #cbd5e0; border-radius: 12px; position: relative; background: #fff; }
-        .drop-zone.over { border-color: var(--accent); background: #e7f5ff; }
-        textarea { width: 100%; height: 100%; padding: 20px; border: none; background: transparent; font-size: 15px; line-height: 1.7; box-sizing: border-box; resize: none; z-index: 2; position: relative; }
-        .drop-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #a0aec0; text-align: center; pointer-events: none; z-index: 1; }
-        .preview-zone { height: 550px; background: #1a1a1a; border-radius: 12px; perspective: 1500px; position: relative; }
-        .layer-paper { position: absolute; background: white; width: 85%; height: 92%; top: 4%; left: 7.5%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transition: 0.8s; }
-        .layer-content { position: absolute; z-index: 3; width: 75%; top: 8%; left: 12.5%; color: #333; font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-y: auto; height: 82%; transition: 0.8s; }
-        .button-group { margin-top: 30px; display: flex; gap: 15px; justify-content: center; }
-        button { padding: 14px 40px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-main { background: var(--primary); color: white; border: none; }
+        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .drop-zone { height: 500px; border: 3px dashed #ddd; border-radius: 10px; position: relative; }
+        textarea { width: 100%; height: 100%; border: none; padding: 15px; box-sizing: border-box; resize: none; font-size: 14px; background: transparent; }
+        .preview-zone { height: 500px; background: #111; border-radius: 10px; color: #fff; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 14px; }
+        .btn-group { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        button { padding: 12px 25px; cursor: pointer; font-weight: bold; border-radius: 5px; border: 1px solid #333; }
+        .btn-primary { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="header">
-        <div>
-            <h1 style="margin:0; font-size: 26px; color: var(--primary);">EAIM AI Publishing Engine</h1>
-            <p style="margin:5px 0 0; color: #7f8c8d;">2.5-Flash 지능형 엔진</p>
-        </div>
+        <h2>EAIM Engine 2.5-Flash</h2>
         <div class="api-config">
-            <div id="statusDot" class="status-dot"></div>
-            <span id="statusMsg">확인 대기 중</span>
-            <input type="password" id="apiKey" placeholder="Gemini API 키를 입력하세요">
-            <button class="btn-verify" onclick="verifyKey()">키 확인</button>
+            <div id="dot" class="status-dot"></div>
+            <input type="password" id="key" placeholder="API KEY">
+            <button onclick="checkKey()">연결 확인</button>
         </div>
     </div>
 
     <div class="main-layout">
-        <div class="drop-zone" id="dropZone">
-            <div class="drop-label" id="dropLabel">PDF 또는 TXT 파일을 여기에 끌어넣으세요</div>
-            <textarea id="rawInput"></textarea>
+        <div class="drop-zone">
+            <textarea id="input" placeholder="여기에 파일을 던지거나 글을 쓰세요."></textarea>
         </div>
-        <div class="preview-zone">
-            <div id="p-bg" class="layer-paper"></div>
-            <div id="p-text" class="layer-content">연결 성공 후 분석 버튼을 누르세요.</div>
-        </div>
+        <div id="output" class="preview-zone">결과가 여기에 표시됩니다.</div>
     </div>
 
-    <div class="button-group">
-        <button id="runBtn" class="btn-main" onclick="processDocument()" disabled>2.5-Flash 정밀 분석 시작</button>
+    <div class="btn-group">
+        <input type="file" id="file" accept=".txt,.pdf" style="display:none" onchange="loadFile(this)">
+        <button onclick="document.getElementById('file').click()">📁 파일 첨부</button>
+        <button id="run" class="btn-primary" onclick="runAI()" disabled>2.5-Flash 분석 시작</button>
     </div>
 </div>
 
 <script>
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const pdfjs = window['pdfjs-dist/build/pdf'];
+    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
 
-    let isVerified = false;
+    let verified = false;
 
-    // 키 확인 함수 (2.5-Flash 고정)
-    async function verifyKey() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const msg = document.getElementById('statusMsg');
-        const dot = document.getElementById('statusDot');
-
-        if (!apiKey) return alert("키를 입력해주세요.");
-        
-        msg.innerText = "연결 시도 중...";
-        dot.style.background = "#fab005";
-
+    // 1. 키 확인 (성애님 전용 2.5-Flash 모델)
+    async function checkKey() {
+        const k = document.getElementById('key').value.trim();
+        if(!k) return alert("키를 입력하세요.");
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: "hi" }] }] })
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({contents: [{parts: [{text: "hi"}]}]})
             });
-            const data = await response.json();
-            
-            if (data.error) throw new Error(data.error.message);
+            const data = await res.json();
+            if(data.error) throw new Error(data.error.message);
+            verified = true;
+            document.getElementById('dot').className = 'status-dot status-on';
+            document.getElementById('run').disabled = false;
+            alert("2.5-Flash 엔진 연결 성공!");
+        } catch(e) { alert("연결 실패: " + e.message); }
+    }
 
-            isVerified = true;
-            msg.innerText = "2.5-Flash 연결됨";
-            msg.style.color = "#2ecc71";
-            dot.classList.add('status-on');
-            document.getElementById('runBtn').disabled = false;
-            alert("2.5-Flash 엔진 연결에 성공했습니다!");
-        } catch (e) {
-            msg.innerText = "연결 실패";
-            msg.style.color = "#e74c3c";
-            dot.style.background = "#e74c3c";
-            alert("실패 사유: " + e.message);
+    // 2. 파일 로드 (PDF/TXT)
+    async function loadFile(input) {
+        const file = input.files[0];
+        if(!file) return;
+        if(file.type === "application/pdf") {
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
+                let text = "";
+                for(let i=1; i<=pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(s => s.str).join(" ") + "\n\n";
+                }
+                document.getElementById('input').value = text;
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => document.getElementById('input').value = e.target.result;
+            reader.readAsText(file);
         }
     }
 
-    // 파일 처리 및 2.5-Flash 분석 로직은 이전과 동일하게 유지...
-    async function processDocument() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const text = document.getElementById('rawInput').value;
-        if (!text) return alert("분석할 내용이 없습니다.");
-        document.getElementById('p-text').innerText = "2.5-Flash 분석 중...";
+    // 3. AI 분석 (2.5-Flash 고정)
+    async function runAI() {
+        const k = document.getElementById('key').value.trim();
+        const t = document.getElementById('input').value;
+        if(!t) return alert("내용이 없습니다.");
+        document.getElementById('output').innerText = "2.5-Flash 분석 중...";
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `너는 교육 전문 편집장이야. 다음 원고 교정해줘: \n\n${text}` }] }] })
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({contents: [{parts: [{text: `교정해줘: \n${t}`}]}]})
             });
-            const data = await response.json();
-            document.getElementById('p-text').innerText = data.candidates[0].content.parts[0].text;
-            document.getElementById('p-bg').style.transform = "rotateY(10deg) translateZ(-30px)";
-            document.getElementById('p-text').style.transform = "translateZ(50px)";
-        } catch (e) { alert(e.message); }
+            const data = await res.json();
+            document.getElementById('output').innerText = data.candidates[0].content.parts[0].text;
+        } catch(e) { alert(e.message); }
     }
 </script>
 </body>
