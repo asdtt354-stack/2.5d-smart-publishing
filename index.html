@@ -1,152 +1,929 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>EAIM Global Pro v4</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-    <style>
-        :root { --primary: #1a1a1a; --accent: #3498db; --bg: #f0f2f5; }
-        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .app-container { width: 98%; max-width: 1600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
-        .main-layout { display: grid; grid-template-columns: 320px 1fr 1.2fr; gap: 25px; margin-top: 20px; }
-
-        /* 입력창 강화: 불러온 텍스트가 어떻게 들어왔는지 확인용 */
-        .editor-zone { display: flex; flex-direction: column; gap: 10px; }
-        #input { width: 100%; height: 750px; border: 1px solid #ddd; border-radius: 12px; padding: 15px; font-size: 13px; line-height: 1.6; background: #fafafa; }
-
-        /* 프리뷰 존: 실제 종이 느낌 */
-        .preview-zone { height: 800px; background: #2c3e50; border-radius: 12px; overflow-y: auto; padding: 40px 0; perspective: 2000px; }
-        #pageContainer { width: 210mm; margin: 0 auto; }
-        .paper { 
-            background: white; width: 210mm; min-height: 297mm; margin-bottom: 30px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; 
-            box-sizing: border-box; transition: 0.3s; padding: 0; overflow: hidden;
-        }
-
-        /* [핵심] 표(Table) 시각화 스타일 - 아주 진한 선 */
-        .content-body { color: #111; line-height: 1.8; text-align: justify; box-sizing: border-box; }
-        .content-body table { width: 100% !important; border-collapse: collapse !important; margin: 20px 0 !important; border: 2px solid #000 !important; }
-        .content-body th, .content-body td { border: 1.2px solid #000 !important; padding: 12px !important; text-align: center; }
-        .content-body th { background: #e9ecef !important; font-weight: bold; }
-
-        .btn-run { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; display: inline-block; margin-left: 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamCraft — 시험지 편집기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f2ed; --surface:#fff; --surface2:#f0ede6; --surface3:#e8e5de;
+  --border:#ddd9d0; --border2:#c4bfb4;
+  --text:#1a1814; --text2:#5a5650; --text3:#9a9590;
+  --accent:#2255a4; --accent-l:#e8f0fb;
+  --green:#156b44; --green-l:#e6f4ee;
+  --warn:#a85a09; --warn-l:#fef3e2;
+  --red:#991b1b; --red-l:#fef2f2;
+  --shadow:0 2px 8px rgba(0,0,0,.09),0 0 0 .5px rgba(0,0,0,.06);
+  --shadow-xl:0 8px 32px rgba(0,0,0,.14);
+  --r:8px; --rl:12px; --rxl:16px;
+  --font:'Noto Sans KR',sans-serif;
+  --serif:'Noto Serif KR',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;height:100vh;overflow:hidden}
+.shell{display:grid;grid-template-rows:52px 1fr;height:100vh}
+.topbar{background:var(--surface);border-bottom:.5px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;z-index:200;flex-shrink:0}
+.logo{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.5px;white-space:nowrap}
+.logo sub{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px}
+.sep{width:.5px;height:20px;background:var(--border);flex-shrink:0}
+.main{display:grid;grid-template-columns:256px 1fr 308px;height:calc(100vh - 52px);overflow:hidden}
+.panel{overflow-y:auto;scrollbar-width:thin}
+.p-left{background:var(--surface);border-right:.5px solid var(--border)}
+.p-center{background:var(--bg);overflow-y:auto;padding:28px 24px 60px}
+.p-right{background:var(--surface);border-left:.5px solid var(--border)}
+.sec{border-bottom:.5px solid var(--border)}
+.sec-hd{padding:10px 14px;font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .12s}
+.sec-hd:hover{background:var(--surface2)}
+.sec-bd{padding:12px 14px}
+.sec-bd.closed{display:none}
+label{font-size:11.5px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px}
+input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:6px 9px;border:.5px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);outline:none;transition:border .14s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(34,85,164,.1)}
+textarea{resize:vertical;min-height:56px}
+.fr{margin-bottom:9px}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+.range-row{display:flex;align-items:center;gap:8px}
+.range-row input[type=range]{flex:1;padding:0;border:none;background:transparent;cursor:pointer}
+.rv{min-width:32px;text-align:right;font-size:12px;font-weight:600;color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-family:var(--font);font-size:12.5px;font-weight:500;cursor:pointer;transition:all .13s;border:.5px solid var(--border2);background:var(--surface);color:var(--text);white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-p:hover{background:#1a4490}
+.btn-g{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-g:hover{background:#0d5235}
+.btn-sm{padding:4px 9px;font-size:11.5px}
+.btn-full{width:100%;justify-content:center}
+.btn-icon{width:28px;height:28px;padding:0;justify-content:center;font-size:14px}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--rl);padding:18px 12px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-l)}
+.upload-zone .uz-ico{font-size:28px;margin-bottom:6px}
+.upload-zone p{font-size:12px;color:var(--text2);line-height:1.5}
+.upload-zone strong{color:var(--accent)}
+.tmpl-thumb{position:relative;border-radius:var(--r);overflow:hidden;border:.5px solid var(--border);background:var(--surface)}
+.tmpl-thumb img{width:100%;display:block}
+.tmpl-thumb .thlabel{font-size:11px;padding:4px 8px;color:var(--text2);border-top:.5px solid var(--border)}
+.thdel{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.tmpl-item{padding:7px 10px;border-radius:var(--r);border:.5px solid var(--border);margin-bottom:5px;cursor:pointer;font-size:12px;transition:all .13s;display:flex;align-items:center;gap:7px}
+.tmpl-item:hover{background:var(--accent-l);border-color:var(--accent);color:var(--accent)}
+#paper-wrap{display:flex;justify-content:center;position:relative}
+#paper{background:#fff;box-shadow:var(--shadow-xl);position:relative;transform-origin:top center;transition:transform .2s}
+#paper.edit-mode{outline:2.5px solid var(--accent);outline-offset:3px}
+.exam-block{position:relative;transition:background .1s}
+.exam-block:hover > .btoolbar{opacity:1;pointer-events:all}
+.exam-block.selected{background:rgba(34,85,164,.04);border-radius:4px}
+.btoolbar{position:absolute;top:-30px;right:0;display:flex;gap:2px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:50;background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:2px 4px;box-shadow:var(--shadow)}
+.btoolbar button{background:transparent;border:none;cursor:pointer;padding:3px 5px;border-radius:4px;font-size:12px;color:var(--text2)}
+.btoolbar button:hover{background:var(--surface2);color:var(--text)}
+.block-content{outline:none;cursor:default;border-radius:3px;white-space:pre-wrap;word-break:break-word}
+.block-content[contenteditable=true]{cursor:text;background:rgba(34,85,164,.03);border:.5px dashed rgba(34,85,164,.3)}
+.block-content[contenteditable=true]:focus{background:rgba(34,85,164,.06);border-color:var(--accent)}
+.err-spell{border-bottom:2px solid #ef4444;cursor:pointer}
+.err-space{border-bottom:2px solid #f97316;cursor:pointer}
+.err-content{border-bottom:2px solid #8b5cf6;cursor:pointer}
+.err-answer{border-bottom:2px solid #ec4899;cursor:pointer}
+.tabs{display:flex;border-bottom:.5px solid var(--border)}
+.tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .13s}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.on){color:var(--text2);background:var(--surface2)}
+.tc{display:none;padding:12px}
+.tc.on{display:block}
+.issue-item{padding:9px 11px;border-radius:var(--r);margin-bottom:5px;border:.5px solid;cursor:pointer;transition:filter .13s}
+.issue-item:hover{filter:brightness(.96)}
+.is-spell{background:#fef2f2;border-color:#fca5a5}
+.is-space{background:#fff7ed;border-color:#fed7aa}
+.is-content{background:#f5f3ff;border-color:#c4b5fd}
+.is-answer{background:#fdf2f8;border-color:#f9a8d4}
+.ibadge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;display:inline-block;margin-bottom:3px}
+.bs{background:#ef4444;color:#fff}.bo{background:#f97316;color:#fff}
+.bv{background:#8b5cf6;color:#fff}.bp{background:#ec4899;color:#fff}
+.itext{font-size:11.5px;color:var(--text2);margin-top:1px}
+.ifix{font-size:11.5px;color:var(--green);font-weight:500;margin-top:2px}
+.iorig{font-size:11px;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;font-family:monospace;display:inline-block;margin-bottom:2px}
+.spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;gap:8px;padding:14px;color:var(--text3);font-size:13px}
+.badge-n{display:inline-block;background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:17px;text-align:center;margin-left:4px}
+.divider{height:.5px;background:var(--border);margin:8px 0}
+.empty-state{text-align:center;padding:24px 14px;color:var(--text3);font-size:12px;line-height:1.7}
+.cr{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text2);padding:2px 0}
+.api-hint{font-size:10.5px;color:var(--text3);margin-top:3px;line-height:1.5}
+.status-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:.5px solid var(--border);padding:3px 18px;display:flex;gap:18px;font-size:10.5px;color:var(--text3);z-index:300}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border-radius:var(--rxl);padding:28px;min-width:360px;max-width:520px;width:90%;box-shadow:var(--shadow-xl)}
+.modal h2{font-size:16px;font-weight:600;margin-bottom:16px}
+.modal-foot{margin-top:20px;display:flex;justify-content:flex-end;gap:8px}
+.fmt-header{text-align:center;padding-bottom:10px;border-bottom:2px solid #222;margin-bottom:14px}
+.fmt-footer{margin-top:12px;border-top:.5px solid #999;padding-top:6px;font-size:9pt;display:flex;justify-content:space-between;color:#666}
+.fmt-qblock{margin-bottom:10px;page-break-inside:avoid}
+/* PDF / 문제 파일 업로드 */
+.content-upload-zone{border:1.5px dashed var(--border2);border-radius:var(--rl);padding:14px 12px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg);margin-bottom:8px}
+.content-upload-zone:hover,.content-upload-zone.drag{border-color:var(--accent);background:var(--accent-l)}
+.content-upload-zone p{font-size:12px;color:var(--text2);line-height:1.5}
+.content-upload-zone strong{color:var(--accent)}
+.file-chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:.5px solid var(--border);border-radius:var(--r);padding:6px 10px;margin-bottom:6px;font-size:12px}
+.file-chip .fc-ico{font-size:16px;flex-shrink:0}
+.file-chip .fc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.file-chip .fc-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px}
+.file-chip .fc-del:hover{color:var(--red)}
+.import-progress{font-size:11.5px;color:var(--text3);padding:4px 0;display:flex;align-items:center;gap:6px}
+/* 가져온 내용 미리보기 */
+.import-preview{background:var(--surface2);border:.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11.5px;color:var(--text2);max-height:120px;overflow-y:auto;margin-top:6px;white-space:pre-wrap;line-height:1.5}
+/* 표(table) 스타일 — PDF에서 가져온 표 보존 */
+.exam-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:inherit;page-break-inside:avoid}
+.exam-table th,.exam-table td{border:1px solid #444;padding:5px 8px;text-align:left;vertical-align:top;word-break:break-word}
+.exam-table th{background:#f0ede6;font-weight:600;text-align:center}
+.exam-table td:first-child{font-weight:500}
+.exam-table tr:nth-child(even) td{background:#fafaf8}
+/* block-content 내부 표 */
+.block-content table{width:100%;border-collapse:collapse;margin:6px 0}
+.block-content table th,.block-content table td{border:1px solid #555;padding:4px 7px;vertical-align:top}
+.block-content table th{background:#ebebeb;text-align:center;font-weight:600}
+.block-content[contenteditable=true] table th,
+.block-content[contenteditable=true] table td{border-color:rgba(34,85,164,.4)}
+/* import-from-pdf 탭 badge */
+.new-badge{font-size:9px;background:var(--accent);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:middle}
+.fmt-2col{column-count:2;column-gap:20px;column-rule:.5px solid #ddd}
+.mode-btn-group{display:flex;gap:4px;background:var(--surface2);border-radius:var(--r);padding:3px}
+.mode-btn{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all .13s}
+.mode-btn.on{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+@media print{
+  .shell{display:block;height:auto}
+  .topbar,.p-left,.p-right,.status-bar,.btoolbar{display:none!important}
+  .p-center{padding:0}
+  #paper-wrap{display:block}
+  #paper{box-shadow:none;transform:none!important;outline:none!important}
+  .block-content[contenteditable]{background:transparent!important;border:none!important}
+}
+</style>
 </head>
 <body>
+<div class="shell">
 
-<div class="app-container">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>EAIM <span style="color:var(--accent)">Engine v4 (표 구조 복원형)</span></h2>
-        <div>
-            <input type="password" id="key" placeholder="Gemini API Key" style="padding:8px; border-radius:5px; border:1px solid #ddd; width:250px;">
-            <span id="dot" class="status-dot"></span>
+<header class="topbar">
+  <div class="logo">ExamCraft <sub>시험지 편집기</sub></div>
+  <div class="sep"></div>
+  <div class="mode-btn-group">
+    <button class="mode-btn on" id="mb-preview" onclick="setMode('preview')">👁 미리보기</button>
+    <button class="mode-btn" id="mb-edit" onclick="setMode('edit')">✏️ 직접편집</button>
+  </div>
+  <div class="sep"></div>
+  <button class="btn btn-sm btn-icon" onclick="doZoom(-.1)" title="축소">−</button>
+  <span id="zoom-lbl" style="font-size:11.5px;color:var(--text2);min-width:34px;text-align:center">100%</span>
+  <button class="btn btn-sm btn-icon" onclick="doZoom(.1)" title="확대">+</button>
+  <div class="sep"></div>
+  <div style="margin-left:auto;display:flex;gap:6px">
+    <button class="btn btn-sm" onclick="doPrint()">🖨 인쇄</button>
+    <button class="btn btn-sm btn-g" onclick="doPDF()">📄 PDF</button>
+    <button class="btn btn-sm btn-p" onclick="runAI()">✨ AI 교정</button>
+  </div>
+</header>
+
+<div class="main">
+<!-- ═══ LEFT ═══ -->
+<div class="panel p-left">
+
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)"><span>📁 학교 양식 업로드</span><span class="arr">▾</span></div>
+    <div class="sec-bd">
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('file-inp').click()"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="uz-ico">📋</div>
+        <p><strong>양식 파일 업로드</strong><br>또는 여기에 끌어다 놓기</p>
+        <p style="font-size:11px;color:var(--text3);margin-top:3px">PNG · JPG · PDF</p>
+      </div>
+      <input type="file" id="file-inp" accept=".png,.jpg,.jpeg,.pdf" style="display:none" onchange="handleUpload(this)">
+      <div id="tmpl-preview" style="margin-top:10px;display:none">
+        <div class="tmpl-thumb">
+          <img id="tmpl-img" src="" alt="양식 미리보기" style="display:none">
+          <div id="tmpl-pdf-icon" style="display:none;padding:20px;text-align:center;font-size:32px">📄</div>
+          <button class="thdel" onclick="removeTemplate()" title="삭제">✕</button>
+          <div class="thlabel" id="tmpl-nm"></div>
         </div>
+        <button class="btn btn-p btn-full" style="margin-top:8px" onclick="applyTemplate()">✨ AI로 양식 분석·적용</button>
+      </div>
+      <div id="tmpl-status" style="margin-top:6px;font-size:11.5px"></div>
     </div>
+  </div>
 
-    <div class="main-layout">
-        <div class="config-panel" style="background:#f8fafc; padding:20px; border-radius:12px;">
-            <div style="font-weight:bold; margin-bottom:15px; color:var(--accent);">📌 사용 가이드</div>
-            <p style="font-size:12px; color:#666; line-height:1.6;">
-                1. [원고 불러오기]로 PDF를 선택하세요.<br>
-                2. 입력창에 텍스트가 들어오면, 표 데이터가 섞여있는지 확인하세요.<br>
-                3. [분석/복원]을 누르면 AI가 깨진 데이터를 표로 다시 조립합니다.
-            </p>
-            <input type="file" id="fileIn" style="display:none;" onchange="handleFile(this.files[0])">
-            <button onclick="document.getElementById('fileIn').click()" style="width:100%; padding:12px; background:#34495e; color:white; border:none; border-radius:8px; cursor:pointer; margin-bottom:15px;">📁 1. 원고 불러오기</button>
-            
-            <div style="border-top:1px solid #ddd; padding-top:15px; margin-top:15px;">
-                <label style="font-size:13px; font-weight:bold;">글자 크기 (px)</label>
-                <input type="number" id="fS" value="16" oninput="updateLayout()" style="width:50px; padding:5px; margin-left:10px;">
-            </div>
-            
-            <button class="btn-run" style="margin-top:20px;" onclick="runAI()">🚀 2. 표 구조 분석 및 복원</button>
-            <button onclick="exportPDF()" style="width:100%; padding:15px; background:#2ecc71; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">💾 3. PDF 최종 저장</button>
-        </div>
-
-        <div class="editor-zone">
-            <div style="font-weight:bold; font-size:14px;">📥 불러온 원고 데이터 (RAW)</div>
-            <textarea id="input" placeholder="여기에 불러온 글자들이 표시됩니다. 표 데이터가 줄글처럼 보여도 괜찮습니다. AI가 고쳐줄 거예요!"></textarea>
-        </div>
-
-        <div class="preview-zone">
-            <div id="pageContainer">
-                <div class="paper">
-                    <div id="output" class="content-body" style="padding:30mm 30mm 30mm 30mm;">출력 미리보기</div>
-                </div>
-            </div>
-        </div>
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)"><span>📐 용지 &amp; 여백</span><span class="arr">▾</span></div>
+    <div class="sec-bd">
+      <div class="fr"><label>용지 크기</label>
+        <select id="pg-size" onchange="buildPaper()">
+          <option value="A4">A4 (210×297mm)</option><option value="A3">A3 (297×420mm)</option>
+          <option value="B4">B4 (257×364mm)</option><option value="A5">A5 (148×210mm)</option>
+          <option value="Letter">Letter (216×279mm)</option>
+        </select></div>
+      <div class="fr"><label>방향</label>
+        <select id="pg-orient" onchange="buildPaper()">
+          <option value="portrait">세로</option><option value="landscape">가로</option>
+        </select></div>
+      <div style="font-size:11.5px;color:var(--text2);font-weight:500;margin-bottom:5px">여백 (mm)</div>
+      <div class="fr2">
+        <div><label>위</label><input type="number" id="m-t" value="20" min="3" max="60" onchange="buildPaper()"></div>
+        <div><label>아래</label><input type="number" id="m-b" value="20" min="3" max="60" onchange="buildPaper()"></div>
+      </div>
+      <div class="fr2">
+        <div><label>왼쪽</label><input type="number" id="m-l" value="20" min="3" max="60" onchange="buildPaper()"></div>
+        <div><label>오른쪽</label><input type="number" id="m-r" value="20" min="3" max="60" onchange="buildPaper()"></div>
+      </div>
+      <div class="fr"><label>단(컬럼)</label>
+        <select id="cols" onchange="buildPaper()">
+          <option value="1">1단</option><option value="2">2단</option>
+        </select></div>
+      <div class="fr"><label>글자 크기</label>
+        <div class="range-row">
+          <input type="range" id="fz" min="8" max="16" value="11" step=".5" oninput="applyFontStyle()">
+          <span class="rv" id="fz-v">11pt</span></div></div>
+      <div class="fr"><label>줄 간격</label>
+        <div class="range-row">
+          <input type="range" id="lh" min="1.4" max="2.4" value="1.8" step=".1" oninput="applyFontStyle()">
+          <span class="rv" id="lh-v">1.8</span></div></div>
     </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)"><span>🏫 시험지 정보</span><span class="arr">▾</span></div>
+    <div class="sec-bd">
+      <div class="fr"><label>학교명</label><input type="text" id="school" placeholder="○○초등학교" oninput="renderHeader()"></div>
+      <div class="fr2">
+        <div><label>학년</label><input type="text" id="grade" placeholder="6학년" oninput="renderHeader()"></div>
+        <div><label>반</label><input type="text" id="cls" placeholder="2반" oninput="renderHeader()"></div>
+      </div>
+      <div class="fr"><label>과목</label><input type="text" id="subj" placeholder="국어" oninput="renderHeader()"></div>
+      <div class="fr2">
+        <div><label>시험 종류</label>
+          <select id="etype" onchange="renderHeader()">
+            <option>1학기 중간</option><option>1학기 기말</option>
+            <option>2학기 중간</option><option>2학기 기말</option>
+            <option>단원평가</option><option>수행평가</option>
+          </select></div>
+        <div><label>총점</label><input type="number" id="total" value="100" oninput="renderHeader()"></div>
+      </div>
+      <div class="fr"><label>날짜</label><input type="text" id="edate" placeholder="2025년 6월 1일" oninput="renderHeader()"></div>
+      <div class="fr"><label>이름·번호칸</label>
+        <select id="show-nm" onchange="renderHeader()">
+          <option value="yes">표시</option><option value="no">숨김</option>
+        </select></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)"><span>📝 문제 유형 삽입</span><span class="arr">▾</span></div>
+    <div class="sec-bd">
+      <div class="tmpl-item" onclick="insertQ('obj')">📋 객관식 5지선다</div>
+      <div class="tmpl-item" onclick="insertQ('short')">✏️ 단답형</div>
+      <div class="tmpl-item" onclick="insertQ('essay')">📝 서술형</div>
+      <div class="tmpl-item" onclick="insertQ('fill')">🔲 빈칸채우기</div>
+      <div class="tmpl-item" onclick="insertQ('match')">↔ 연결하기</div>
+      <div class="tmpl-item" onclick="insertQ('ox')">⭕ O/X 문제</div>
+      <div class="tmpl-item" onclick="insertQ('order')">🔢 순서배열</div>
+      <div class="tmpl-item" onclick="insertQ('math')">➕ 수식 계산</div>
+      <div class="tmpl-item" onclick="insertQ('reading')">📖 지문 독해</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd" onclick="toggleSec(this)"><span>🤖 AI 설정</span><span class="arr">▾</span></div>
+    <div class="sec-bd">
+      <div class="fr"><label>Anthropic API 키</label>
+        <input type="password" id="api-key" placeholder="sk-ant-...">
+        <div class="api-hint">AI 교정 및 양식 분석에 사용됩니다.<br>브라우저에만 저장됩니다.</div></div>
+      <div class="fr"><label>과목 컨텍스트</label>
+        <select id="ai-subj">
+          <option value="auto">자동 감지</option>
+          <option value="korean">국어</option><option value="math">수학</option>
+          <option value="english">영어</option><option value="science">과학</option>
+          <option value="social">사회</option><option value="history">역사</option>
+          <option value="music">음악</option><option value="art">미술</option><option value="pe">체육</option>
+        </select></div>
+      <button class="btn btn-p btn-full" style="margin-top:4px" onclick="runAI()">✨ AI 교정 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CENTER ═══ -->
+<div class="panel p-center">
+  <div id="paper-wrap">
+    <div id="paper">
+      <div id="paper-inner">
+        <div id="exam-hdr"></div>
+        <div id="content-area"></div>
+        <div id="exam-ftr" class="fmt-footer" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RIGHT ═══ -->
+<div class="panel p-right">
+  <div class="tabs">
+    <div class="tab on" onclick="switchTab(this,'tc-issues')">교정<span id="issue-badge"></span></div>
+    <div class="tab" onclick="switchTab(this,'tc-format')">양식분석</div>
+    <div class="tab" onclick="switchTab(this,'tc-stats')">통계</div>
+    <div class="tab" onclick="switchTab(this,'tc-help')">도움말</div>
+  </div>
+
+  <div id="tc-issues" class="tc on">
+    <div id="ai-status-area">
+      <div class="empty-state">
+        <div style="font-size:30px;margin-bottom:8px">✨</div>
+        <div style="font-weight:600;margin-bottom:4px">AI 교정 준비됨</div>
+        <div>상단 <strong>AI 교정</strong> 버튼 또는<br>좌측 AI 설정에서 실행하세요.</div>
+      </div>
+    </div>
+    <div id="issue-list" style="display:none"></div>
+  </div>
+
+  <div id="tc-format" class="tc">
+    <div id="fmt-area">
+      <div class="empty-state">
+        <div style="font-size:28px;margin-bottom:8px">📋</div>
+        <div style="font-weight:600;margin-bottom:4px">양식 분석 결과</div>
+        <div>학교 양식 파일을 업로드하고<br>"AI로 양식 분석·적용" 버튼을<br>누르면 결과가 표시됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tc-stats" class="tc">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">문서 통계</div>
+    <div class="cr"><span>전체 글자</span><span id="s-chars">0</span></div>
+    <div class="cr"><span>공백 제외</span><span id="s-chns">0</span></div>
+    <div class="cr"><span>단어 수</span><span id="s-words">0</span></div>
+    <div class="cr"><span>문제 블록 수</span><span id="s-qnum">0</span></div>
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">오류 요약</div>
+    <div class="cr"><span>🔴 맞춤법·오타</span><span id="es-sp">-</span></div>
+    <div class="cr"><span>🟠 띄어쓰기</span><span id="es-sw">-</span></div>
+    <div class="cr"><span>🟣 문제 오류</span><span id="es-ct">-</span></div>
+    <div class="cr"><span>🩷 정답 오류</span><span id="es-an">-</span></div>
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">양식 정보</div>
+    <div class="cr"><span>적용 양식</span><span id="s-tmpl" style="color:var(--text3);max-width:140px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">없음</span></div>
+    <div class="cr"><span>용지</span><span id="s-page">A4 세로</span></div>
+    <div class="cr"><span>단</span><span id="s-col">1단</span></div>
+  </div>
+
+  <div id="tc-help" class="tc">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">사용 가이드</div>
+    <div style="font-size:12px;line-height:1.85;color:var(--text2)">
+      <p><strong>📁 학교 양식 업로드</strong><br>좌측 상단에서 학교 시험지 양식 이미지(PNG/JPG) 또는 PDF를 올리세요. AI가 구조를 자동 분석합니다.</p>
+      <div class="divider"></div>
+      <p><strong>✨ AI 양식 분석·적용</strong><br>업로드 후 버튼을 누르면 여백·단·글자크기·헤더 등을 자동으로 맞춥니다. 우측 "양식분석" 탭에서 결과 확인 가능.</p>
+      <div class="divider"></div>
+      <p><strong>✏️ 직접편집 모드</strong><br>상단 "직접편집" 버튼을 누르면 각 문제 블록을 클릭해 직접 수정할 수 있습니다.<br>↑↓ 블록 이동 / ⧉ 복사 / ✕ 삭제</p>
+      <div class="divider"></div>
+      <p><strong>⚙️ 세부 조정</strong><br>양식 분석 탭의 "세부 조정" 버튼으로 여백·글자크기 등을 수동으로 미세조정할 수 있습니다.</p>
+      <div class="divider"></div>
+      <p><strong>오류 마킹 색상</strong><br>
+        <span style="border-bottom:2px solid #ef4444">빨간줄</span> 맞춤법·오타<br>
+        <span style="border-bottom:2px solid #f97316">주황줄</span> 띄어쓰기<br>
+        <span style="border-bottom:2px solid #8b5cf6">보라줄</span> 문제 내용 오류<br>
+        <span style="border-bottom:2px solid #ec4899">분홍줄</span> 정답·보기 오류</p>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="status-bar">
+  <span><span class="sdot"></span><span id="sb-mode">미리보기</span></span>
+  <span>|</span><span id="sb-paper">A4 세로</span>
+  <span>|</span><span id="sb-tmpl">양식: 없음</span>
+  <span>|</span><span id="sb-sel">준비</span>
 </div>
 
 <script>
-    const pdfjs = window['pdfjs-dist/build/pdf'];
-    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let zoom=1, appMode='preview', issues=[], qBlocks=[], nextId=1;
+let templateBase64=null, templateFile=null;
+const MM=3.7795;
+const PAGES={A4:{w:210,h:297},A3:{w:297,h:420},B4:{w:257,h:364},A5:{w:148,h:210},Letter:{w:216,h:279}};
 
-    function updateLayout() {
-        const out = document.getElementById('output');
-        out.style.fontSize = document.getElementById('fS').value + "px";
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  loadDefault(); buildPaper(); renderHeader(); updateStats();
+});
+
+function loadDefault(){
+  qBlocks=[
+    {id:nextId++,type:'obj',  text:'1. 다음 중 올바른 맞춤법을 고르시오.\n\n① 되다  ② 되여  ③ 됩니다  ④ 됩니까  ⑤ 되어요'},
+    {id:nextId++,type:'obj',  text:'2. 밑줄 친 낱말의 뜻풀이로 알맞은 것은?\n\n"그는 매우 부지런하여 아침 일찍 일어났다."\n\n① 느린  ② 게으른  ③ 열심히 일하는  ④ 자주 쉬는  ⑤ 모르는'},
+    {id:nextId++,type:'short',text:'3. 다음 빈칸에 알맞은 말을 쓰시오.\n\n"산이 높으면 (          )도 깊다."\n\n답: _______________'},
+    {id:nextId++,type:'essay',text:'4. 다음 시를 읽고 물음에 답하시오.\n\n봄비가 내린다 / 촉촉히 젖은 땅 / 새싹이 돋아난다\n\n(1) 이 시의 계절은 언제입니까?\n\n(2) 시에서 묘사된 자연 현상 두 가지를 쓰시오.'},
+  ];
+  renderAll();
+}
+
+// ═══════════════════════════════════
+// PAPER
+// ═══════════════════════════════════
+function buildPaper(){
+  const sn=document.getElementById('pg-size').value;
+  const or=document.getElementById('pg-orient').value;
+  const mt=+document.getElementById('m-t').value||20;
+  const mb=+document.getElementById('m-b').value||20;
+  const ml=+document.getElementById('m-l').value||20;
+  const mr=+document.getElementById('m-r').value||20;
+  const cl=+document.getElementById('cols').value||1;
+  let {w,h}=PAGES[sn]; if(or==='landscape'){[w,h]=[h,w];}
+  const paper=document.getElementById('paper');
+  paper.style.width=Math.round(w*MM)+'px';
+  paper.style.minHeight=Math.round(h*MM)+'px';
+  paper.style.transform=`scale(${zoom})`;
+  document.getElementById('paper-inner').style.padding=`${mt*MM}px ${mr*MM}px ${mb*MM}px ${ml*MM}px`;
+  const ca=document.getElementById('content-area');
+  ca.style.columnCount=cl===2?'2':'';
+  ca.style.columnGap=cl===2?'20px':'';
+  ca.style.columnRule=cl===2?'.5px solid #ddd':'';
+  document.getElementById('sb-paper').textContent=`${sn} ${or==='portrait'?'세로':'가로'}`;
+  document.getElementById('s-page').textContent=`${sn} ${or==='portrait'?'세로':'가로'}`;
+  document.getElementById('s-col').textContent=cl+'단';
+  applyFontStyle();
+}
+
+function applyFontStyle(){
+  const fz=document.getElementById('fz').value;
+  const lh=document.getElementById('lh').value;
+  document.getElementById('content-area').style.fontSize=fz+'pt';
+  document.getElementById('content-area').style.lineHeight=lh;
+  document.getElementById('fz-v').textContent=fz+'pt';
+  document.getElementById('lh-v').textContent=lh;
+}
+
+function doZoom(d){
+  zoom=Math.min(1.6,Math.max(0.4,zoom+d));
+  document.getElementById('paper').style.transform=`scale(${zoom})`;
+  document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';
+}
+
+// ═══════════════════════════════════
+// HEADER
+// ═══════════════════════════════════
+function renderHeader(){
+  const school=document.getElementById('school').value;
+  const grade=document.getElementById('grade').value;
+  const cls=document.getElementById('cls').value;
+  const subj=document.getElementById('subj').value;
+  const etype=document.getElementById('etype').value;
+  const total=document.getElementById('total').value;
+  const edate=document.getElementById('edate').value;
+  const showNm=document.getElementById('show-nm').value;
+  const title=[school,grade,cls,subj,etype].filter(Boolean).join(' ')||'시험지';
+  let nmBox='';
+  if(showNm==='yes') nmBox=`<div style="display:flex;gap:14px;margin-top:8px;justify-content:flex-end">
+    <div style="border:.5px solid #666;padding:3px 10px;font-size:10pt">학 번: ___________</div>
+    <div style="border:.5px solid #666;padding:3px 10px;font-size:10pt">이 름: ___________</div></div>`;
+  document.getElementById('exam-hdr').innerHTML=`
+    <div class="fmt-header" id="hdr-blk">
+      <div id="hdr-title" style="font-size:17pt;font-weight:700;font-family:var(--serif);margin-bottom:4px"
+        ${appMode==='edit'?'contenteditable="true"':''}>${esc(title)}</div>
+      <div style="font-size:10pt;color:#555;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+        ${edate?`<span>${esc(edate)}</span>`:''}${total?`<span>총 배점: ${esc(total)}점</span>`:''}
+      </div>${nmBox}
+    </div>`;
+}
+
+// ═══════════════════════════════════
+// BLOCKS
+// ═══════════════════════════════════
+function renderAll(){
+  const ca=document.getElementById('content-area');
+  ca.innerHTML=qBlocks.map(renderBlock).join('');
+  if(appMode==='edit') attachEditable();
+  updateStats();
+}
+
+function renderBlock(b){
+  const html=esc(b.text||'').replace(/\n/g,'<br>');
+  const editAttr=appMode==='edit'?'contenteditable="true"':'';
+  return `<div class="exam-block fmt-qblock" data-bid="${b.id}">
+    <div class="btoolbar" style="display:${appMode==='edit'?'flex':'none'}">
+      <button onclick="editBlk(${b.id})" title="편집">✏️</button>
+      <button onclick="moveBlk(${b.id},-1)" title="위로">↑</button>
+      <button onclick="moveBlk(${b.id},1)" title="아래로">↓</button>
+      <button onclick="dupeBlk(${b.id})" title="복사">⧉</button>
+      <button onclick="delBlk(${b.id})" title="삭제" style="color:var(--red)">✕</button>
+    </div>
+    <div class="block-content" id="bc-${b.id}" data-bid="${b.id}" ${editAttr}>${html}</div>
+  </div>`;
+}
+
+function attachEditable(){
+  document.querySelectorAll('.block-content').forEach(bc=>{
+    bc.setAttribute('contenteditable','true');
+    bc.addEventListener('blur',saveBlkContent,{once:false});
+    bc.addEventListener('focus',()=>{
+      bc.closest('.exam-block').classList.add('selected');
+      document.getElementById('sb-sel').textContent='편집 중: 블록 #'+bc.dataset.bid;
+    });
+    bc.addEventListener('blur',()=>{
+      bc.closest('.exam-block')?.classList.remove('selected');
+      document.getElementById('sb-sel').textContent='준비';
+    });
+  });
+  document.querySelectorAll('.btoolbar').forEach(t=>t.style.display='flex');
+  const hdrTitle=document.getElementById('hdr-title');
+  if(hdrTitle) hdrTitle.setAttribute('contenteditable','true');
+}
+
+function detachEditable(){
+  document.querySelectorAll('.block-content').forEach(bc=>{
+    bc.removeAttribute('contenteditable');
+    bc.removeEventListener('blur',saveBlkContent);
+  });
+  document.querySelectorAll('.btoolbar').forEach(t=>t.style.display='none');
+  const hdrTitle=document.getElementById('hdr-title');
+  if(hdrTitle) hdrTitle.removeAttribute('contenteditable');
+}
+
+function saveBlkContent(e){
+  const bc=e.target; if(!bc.dataset.bid) return;
+  const bid=+bc.dataset.bid;
+  const blk=qBlocks.find(b=>b.id===bid);
+  if(blk) blk.text=bc.innerText;
+  updateStats();
+}
+
+function editBlk(id){
+  const bc=document.getElementById('bc-'+id);
+  if(bc){bc.focus();const r=document.createRange();r.selectNodeContents(bc);const s=window.getSelection();s.removeAllRanges();s.addRange(r);}
+}
+
+function moveBlk(id,dir){
+  const i=qBlocks.findIndex(b=>b.id===id); if(i<0) return;
+  const n=i+dir; if(n<0||n>=qBlocks.length) return;
+  [qBlocks[i],qBlocks[n]]=[qBlocks[n],qBlocks[i]]; renderAll();
+}
+
+function dupeBlk(id){
+  const i=qBlocks.findIndex(b=>b.id===id); if(i<0) return;
+  qBlocks.splice(i+1,0,{...qBlocks[i],id:nextId++}); renderAll();
+}
+
+function delBlk(id){
+  if(!confirm('이 문제를 삭제하시겠습니까?')) return;
+  qBlocks=qBlocks.filter(b=>b.id!==id); renderAll();
+}
+
+// ═══════════════════════════════════
+// MODE
+// ═══════════════════════════════════
+function setMode(m){
+  appMode=m;
+  const paper=document.getElementById('paper');
+  document.getElementById('mb-preview').classList.toggle('on',m==='preview');
+  document.getElementById('mb-edit').classList.toggle('on',m==='edit');
+  if(m==='edit'){
+    paper.classList.add('edit-mode');
+    attachEditable();
+    document.getElementById('sb-mode').textContent='✏️ 직접편집 모드';
+  } else {
+    paper.classList.remove('edit-mode');
+    detachEditable();
+    document.getElementById('sb-mode').textContent='👁 미리보기';
+    renderAll(); // re-render clean (strip error marks if needed)
+  }
+  renderHeader();
+}
+
+// ═══════════════════════════════════
+// QUESTION TEMPLATES
+// ═══════════════════════════════════
+const QT={
+  obj:    n=>`${n}. 다음 중 알맞은 것을 고르시오.\n\n① 보기1  ② 보기2  ③ 보기3  ④ 보기4  ⑤ 보기5`,
+  short:  n=>`${n}. 다음 빈칸에 알맞은 말을 쓰시오. [   점]\n\n"(          )이(가) 오면 (          )도 온다."\n\n답: _______________`,
+  essay:  n=>`${n}. 다음을 읽고 물음에 답하시오. [   점]\n\n(조건 또는 지문)\n\n→ `,
+  fill:   n=>`${n}. 다음 빈칸 (가), (나)에 알맞은 말을 쓰시오.\n\n(가)______이(가) 오면 (나)______도 온다.\n\n(가): ___________   (나): ___________`,
+  match:  n=>`${n}. 왼쪽과 오른쪽을 알맞게 연결하시오.\n\n  ① 항목1       •       • ㄱ. 설명1\n  ② 항목2       •       • ㄴ. 설명2\n  ③ 항목3       •       • ㄷ. 설명3`,
+  ox:     n=>`${n}. 다음 내용이 맞으면 O, 틀리면 X를 쓰시오.\n\n① 내용1 ···················· (    )\n② 내용2 ···················· (    )\n③ 내용3 ···················· (    )`,
+  order:  n=>`${n}. 다음을 올바른 순서로 나열하시오.\n\n(가) 내용가   (나) 내용나   (다) 내용다   (라) 내용라\n\n답: (  ) → (  ) → (  ) → (  )`,
+  math:   n=>`${n}. 다음을 계산하시오. [   점]\n\n□ + □ = □\n\n풀이:\n\n답: `,
+  reading:n=>`${n}~${n+1}. 다음 글을 읽고 물음에 답하시오.\n\n[지문을 여기에 입력하세요]\n\n${n}. 이 글의 중심 내용은 무엇입니까?\n\n${n+1}. 밑줄 친 부분의 의미를 설명하시오.`,
+};
+
+function insertQ(type){
+  const n=qBlocks.length+1;
+  const text=QT[type]?QT[type](n):`${n}. (문제 내용 입력)`;
+  qBlocks.push({id:nextId++,type,text});
+  renderAll();
+  document.getElementById('content-area').lastElementChild?.scrollIntoView({behavior:'smooth',block:'end'});
+  if(appMode!=='edit') setMode('edit');
+}
+
+// ═══════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════
+function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
+function dragLeave(e){document.getElementById('upload-zone').classList.remove('drag');}
+function dropFile(e){e.preventDefault();dragLeave(e);const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleUpload(inp){const f=inp.files[0];if(f)processFile(f);}
+
+function processFile(f){
+  templateFile=f;
+  const isImg=/\.(png|jpg|jpeg)$/i.test(f.name);
+  const isPdf=/\.pdf$/i.test(f.name);
+  if(!isImg&&!isPdf){setTmplStatus('⚠️ PNG, JPG, PDF 파일을 올려주세요.','warn');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    templateBase64=ev.target.result;
+    document.getElementById('tmpl-preview').style.display='block';
+    const img=document.getElementById('tmpl-img');
+    const pdfIco=document.getElementById('tmpl-pdf-icon');
+    if(isImg){img.src=templateBase64;img.style.display='block';pdfIco.style.display='none';}
+    else{img.style.display='none';pdfIco.style.display='block';}
+    document.getElementById('tmpl-nm').textContent=f.name;
+    setTmplStatus(`✅ "${f.name}" 업로드 완료`,'ok');
+  };
+  reader.readAsDataURL(f);
+}
+
+function removeTemplate(){
+  templateFile=null;templateBase64=null;
+  document.getElementById('tmpl-preview').style.display='none';
+  document.getElementById('file-inp').value='';
+  setTmplStatus('','');
+  document.getElementById('s-tmpl').textContent='없음';
+  document.getElementById('sb-tmpl').textContent='양식: 없음';
+}
+
+function setTmplStatus(msg,type){
+  const el=document.getElementById('tmpl-status');
+  el.textContent=msg;
+  el.style.color=type==='warn'?'var(--warn)':type==='ok'?'var(--green)':'var(--text3)';
+}
+
+// ═══════════════════════════════════
+// AI TEMPLATE ANALYSIS
+// ═══════════════════════════════════
+async function applyTemplate(){
+  const apiKey=document.getElementById('api-key').value.trim();
+  if(!apiKey){alert('AI 설정에서 API 키를 먼저 입력해 주세요.');return;}
+  if(!templateBase64){alert('양식 파일을 먼저 업로드해 주세요.');return;}
+
+  setTmplStatus('🤖 AI 분석 중...','ok');
+  switchTab(document.querySelectorAll('.tab')[1],'tc-format');
+  document.getElementById('fmt-area').innerHTML=`<div class="loading"><div class="spin"></div>양식 구조를 분석 중입니다...</div>`;
+
+  const isImg=templateBase64.startsWith('data:image');
+  const mt=isImg?(templateBase64.includes('data:image/png')?'image/png':'image/jpeg'):'application/pdf';
+  const b64=templateBase64.split(',')[1];
+
+  const sys=`당신은 한국 학교 시험지 양식 분석 전문가입니다.
+업로드된 양식 이미지를 보고 아래 JSON만 반환하세요. 다른 텍스트 없이.
+{"school":"","grade":"","subject":"","examType":"","pageSize":"A4","orientation":"portrait","columns":1,"marginTop":20,"marginBottom":20,"marginLeft":20,"marginRight":20,"fontSize":11,"lineHeight":1.8,"hasNameBox":true,"footerPresent":false,"footerContent":"","structureNotes":""}
+- pageSize: A4/A3/B4/A5/Letter 중 하나
+- orientation: portrait 또는 landscape
+- columns: 1 또는 2 (정수)
+- margin*: mm 단위 정수
+- fontSize: pt 단위 숫자
+- lineHeight: 소수점 첫째 자리까지`;
+
+  const msgContent=isImg
+    ?[{type:'image',source:{type:'base64',media_type:mt,data:b64}},{type:'text',text:'이 시험지 양식을 분석해 주세요.'}]
+    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'이 시험지 양식을 분석해 주세요.'}];
+
+  try{
+    const raw=await callAPI(apiKey,sys,msgContent);
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    applyAnalysis(parsed);
+    renderFmtReport(parsed);
+    setTmplStatus('✅ 양식 적용 완료','ok');
+    document.getElementById('s-tmpl').textContent=templateFile.name;
+    document.getElementById('sb-tmpl').textContent='양식: '+templateFile.name;
+  }catch(e){
+    document.getElementById('fmt-area').innerHTML=`<div style="padding:14px;color:var(--red);font-size:12.5px"><strong>분석 실패:</strong><br>${esc(e.message)}</div>`;
+    setTmplStatus('❌ 실패: '+e.message,'warn');
+  }
+}
+
+function applyAnalysis(p){
+  if(p.pageSize&&PAGES[p.pageSize]) document.getElementById('pg-size').value=p.pageSize;
+  if(p.orientation) document.getElementById('pg-orient').value=p.orientation;
+  if(p.marginTop)   document.getElementById('m-t').value=p.marginTop;
+  if(p.marginBottom)document.getElementById('m-b').value=p.marginBottom;
+  if(p.marginLeft)  document.getElementById('m-l').value=p.marginLeft;
+  if(p.marginRight) document.getElementById('m-r').value=p.marginRight;
+  if(p.columns)     document.getElementById('cols').value=p.columns;
+  if(p.fontSize)    document.getElementById('fz').value=p.fontSize;
+  if(p.lineHeight)  document.getElementById('lh').value=p.lineHeight;
+  if(p.school)      document.getElementById('school').value=p.school;
+  if(p.grade)       document.getElementById('grade').value=p.grade;
+  if(p.subject)     document.getElementById('subj').value=p.subject;
+  if(p.hasNameBox!==undefined) document.getElementById('show-nm').value=p.hasNameBox?'yes':'no';
+  if(p.footerPresent&&p.footerContent){
+    document.getElementById('exam-ftr').style.display='flex';
+    document.getElementById('exam-ftr').innerHTML=`<span>${esc(p.footerContent)}</span><span>- ${qBlocks.length}문항 -</span>`;
+  }
+  buildPaper(); renderHeader();
+}
+
+function renderFmtReport(p){
+  const row=(l,v)=>v?`<div class="cr"><span>${l}</span><span style="color:var(--text);font-weight:500">${esc(String(v))}</span></div>`:'';
+  document.getElementById('fmt-area').innerHTML=`
+    <div style="background:var(--green-l);border:.5px solid #86efac;border-radius:var(--r);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--green)">
+      ✅ 양식이 자동으로 적용되었습니다
+    </div>
+    <div style="font-size:12.5px;font-weight:600;margin-bottom:8px">감지된 양식 정보</div>
+    ${row('학교명',p.school)}${row('학년/반',p.grade)}${row('과목',p.subject)}
+    ${row('시험 종류',p.examType)}
+    ${row('용지',p.pageSize+' '+(p.orientation==='portrait'?'세로':'가로'))}
+    ${row('단 구성',p.columns+'단')}
+    ${row('여백 상/하',p.marginTop+'mm / '+p.marginBottom+'mm')}
+    ${row('여백 좌/우',p.marginLeft+'mm / '+p.marginRight+'mm')}
+    ${row('글자 크기',p.fontSize+'pt')}${row('줄 간격',p.lineHeight)}
+    ${row('이름칸',p.hasNameBox?'있음':'없음')}
+    ${p.footerContent?row('하단',p.footerContent):''}
+    ${p.structureNotes?`<div class="divider"></div><div style="font-size:11.5px;color:var(--text2);line-height:1.7"><strong>특이사항:</strong><br>${esc(p.structureNotes)}</div>`:''}
+    <div class="divider"></div>
+    <button class="btn btn-full" onclick="showAdjustModal()">⚙️ 세부 조정하기</button>`;
+}
+
+// ═══════════════════════════════════
+// ADJUST MODAL
+// ═══════════════════════════════════
+function showAdjustModal(){
+  const m=document.createElement('div');
+  m.className='modal-bg'; m.id='adj-modal';
+  m.innerHTML=`<div class="modal">
+    <h2>⚙️ 양식 세부 조정</h2>
+    <div class="fr2">
+      <div><label>여백 위 (mm)</label><input type="number" id="adj-mt" value="${document.getElementById('m-t').value}"></div>
+      <div><label>여백 아래 (mm)</label><input type="number" id="adj-mb" value="${document.getElementById('m-b').value}"></div>
+    </div>
+    <div class="fr2">
+      <div><label>여백 왼쪽 (mm)</label><input type="number" id="adj-ml" value="${document.getElementById('m-l').value}"></div>
+      <div><label>여백 오른쪽 (mm)</label><input type="number" id="adj-mr" value="${document.getElementById('m-r').value}"></div>
+    </div>
+    <div class="fr"><label>글자 크기 (pt)</label><input type="number" id="adj-fz" value="${document.getElementById('fz').value}" step="0.5"></div>
+    <div class="fr"><label>줄 간격</label><input type="number" id="adj-lh" value="${document.getElementById('lh').value}" step="0.1"></div>
+    <div class="fr"><label>단 구성</label>
+      <select id="adj-cols">
+        <option value="1" ${document.getElementById('cols').value=='1'?'selected':''}>1단</option>
+        <option value="2" ${document.getElementById('cols').value=='2'?'selected':''}>2단</option>
+      </select></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-p" onclick="applyAdj()">적용</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click',e=>{if(e.target===m)closeModal();});
+}
+
+function applyAdj(){
+  document.getElementById('m-t').value =document.getElementById('adj-mt').value;
+  document.getElementById('m-b').value =document.getElementById('adj-mb').value;
+  document.getElementById('m-l').value =document.getElementById('adj-ml').value;
+  document.getElementById('m-r').value =document.getElementById('adj-mr').value;
+  document.getElementById('fz').value  =document.getElementById('adj-fz').value;
+  document.getElementById('lh').value  =document.getElementById('adj-lh').value;
+  document.getElementById('cols').value=document.getElementById('adj-cols').value;
+  buildPaper(); closeModal();
+}
+
+function closeModal(){const m=document.getElementById('adj-modal');if(m)m.remove();}
+
+// ═══════════════════════════════════
+// AI CORRECTION
+// ═══════════════════════════════════
+async function runAI(){
+  const apiKey=document.getElementById('api-key').value.trim();
+  if(!apiKey){alert('좌측 AI 설정에서 API 키를 입력해 주세요.');return;}
+  const text=qBlocks.map(b=>b.text).join('\n\n');
+  if(!text.trim()){alert('시험 문제를 먼저 입력해 주세요.');return;}
+
+  switchTab(document.querySelectorAll('.tab')[0],'tc-issues');
+  document.getElementById('issue-list').style.display='none';
+  const sa=document.getElementById('ai-status-area');
+  sa.style.display='block';
+  sa.innerHTML=`<div class="loading"><div class="spin"></div>AI가 문서를 분석 중입니다...</div>`;
+
+  const sys=`당신은 한국 학교 시험지 전문 교정 편집자입니다.
+시험 문제 텍스트를 분석하여 4가지 오류를 찾아 JSON만 반환하세요.
+오류 유형: spell(맞춤법·오타), space(띄어쓰기), content(문제내용오류), answer(정답·보기오류)
+형식(다른 텍스트 없이): {"issues":[{"type":"spell|space|content|answer","original":"원문 오류 부분","fixed":"수정안","explanation":"한 줄 설명","line":"문제 번호"}]}
+과목: ${document.getElementById('ai-subj').value}
+이슈 없으면 {"issues":[]}`;
+
+  try{
+    const raw=await callAPI(apiKey,sys,[{type:'text',text}]);
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    issues=parsed.issues||[];
+    renderIssues(issues); markErrors(issues); updateErrSummary(issues);
+  }catch(e){
+    sa.innerHTML=`<div style="padding:14px;color:var(--red);font-size:12.5px"><strong>오류:</strong> ${esc(e.message)}</div>`;
+  }
+}
+
+async function callAPI(apiKey,system,msgContent){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system,messages:[{role:'user',content:msgContent}]})
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${res.status}`);}
+  const d=await res.json();
+  return d.content.map(b=>b.text||'').join('');
+}
+
+function renderIssues(issues){
+  const sa=document.getElementById('ai-status-area');
+  const il=document.getElementById('issue-list');
+  const badge=document.getElementById('issue-badge');
+  if(!issues.length){
+    sa.style.display='block';il.style.display='none';badge.innerHTML='';
+    sa.innerHTML=`<div class="empty-state"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-weight:600;color:var(--green)">오류 없음!</div><div style="margin-top:4px">깔끔한 시험지입니다.</div></div>`;
+    return;
+  }
+  sa.style.display='none'; il.style.display='block';
+  badge.innerHTML=`<span class="badge-n">${issues.length}</span>`;
+  const tl={spell:'맞춤법',space:'띄어쓰기',content:'문제오류',answer:'정답오류'};
+  const bc={spell:'bs',space:'bo',content:'bv',answer:'bp'};
+  const ic={spell:'is-spell',space:'is-space',content:'is-content',answer:'is-answer'};
+  il.innerHTML=issues.map((iss,i)=>`
+    <div class="issue-item ${ic[iss.type]||'is-spell'}" onclick="jumpTo(${i})">
+      <div><span class="ibadge ${bc[iss.type]||'bs'}">${tl[iss.type]||iss.type}</span>
+      ${iss.line?`<span style="font-size:10.5px;color:var(--text3)">${esc(iss.line)}</span>`:''}</div>
+      ${iss.original?`<div class="iorig">${esc(iss.original)}</div>`:''}
+      <div class="itext">${esc(iss.explanation||'')}</div>
+      ${iss.fixed?`<div class="ifix">💡 ${esc(iss.fixed)}</div>`:''}
+    </div>`).join('');
+}
+
+function markErrors(issues){
+  const em={spell:'err-spell',space:'err-space',content:'err-content',answer:'err-answer'};
+  qBlocks.forEach(b=>{
+    const el=document.getElementById('bc-'+b.id);if(!el)return;
+    let html=esc(b.text||'').replace(/\n/g,'<br>');
+    issues.forEach(iss=>{
+      if(!iss.original||iss.original.length>60)return;
+      const cls=em[iss.type]||'err-spell';
+      const e2=esc(iss.original);
+      html=html.replace(new RegExp(escRe(e2),'g'),`<span class="${cls}" title="${esc(iss.explanation||'')}">${e2}</span>`);
+    });
+    el.innerHTML=html;
+  });
+}
+
+function jumpTo(i){
+  const iss=issues[i];if(!iss||!iss.original)return;
+  const spans=document.querySelectorAll('span[class^="err-"]');
+  for(const s of spans){
+    if(s.textContent.includes(iss.original.slice(0,8))){
+      s.scrollIntoView({behavior:'smooth',block:'center'});
+      s.style.outline='2px solid var(--accent)';
+      setTimeout(()=>s.style.outline='',2000);break;
     }
+  }
+}
 
-    async function handleFile(file) {
-        if (!file) return;
-        const inputArea = document.getElementById('input');
-        inputArea.value = "파일에서 데이터를 추출 중입니다...";
+function updateErrSummary(issues){
+  const c={spell:0,space:0,content:0,answer:0};
+  issues.forEach(i=>{if(c[i.type]!==undefined)c[i.type]++;});
+  document.getElementById('es-sp').textContent=c.spell;
+  document.getElementById('es-sw').textContent=c.space;
+  document.getElementById('es-ct').textContent=c.content;
+  document.getElementById('es-an').textContent=c.answer;
+}
 
-        const reader = new FileReader();
-        reader.onload = async function() {
-            const pdf = await pdfjs.getDocument({data: new Uint8Array(this.result)}).promise;
-            let text = "";
-            for(let i=1; i<=pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                // 텍스트 간격을 유지하며 추출
-                text += content.items.map(s => s.str).join("  ") + "\n\n";
-            }
-            inputArea.value = text;
-        };
-        reader.readAsArrayBuffer(file);
-    }
+// ═══════════════════════════════════
+// STATS / UTILS
+// ═══════════════════════════════════
+function updateStats(){
+  const text=qBlocks.map(b=>b.text).join('\n');
+  document.getElementById('s-chars').textContent=text.length;
+  document.getElementById('s-chns').textContent=text.replace(/\s/g,'').length;
+  document.getElementById('s-words').textContent=text.trim()?text.trim().split(/\s+/).length:0;
+  document.getElementById('s-qnum').textContent=qBlocks.length;
+}
 
-    async function runAI() {
-        const k = document.getElementById('key').value;
-        const t = document.getElementById('input').value;
-        if(!k) return alert("API 키를 넣어주세요!");
-        const out = document.getElementById('output');
-        out.innerHTML = "<div style='text-align:center; padding:50px;'>🧠 AI가 표 구조를 추론하여 복원 중입니다...</div>";
+function doPrint(){const t=document.getElementById('paper').style.transform;document.getElementById('paper').style.transform='scale(1)';window.print();document.getElementById('paper').style.transform=t;}
+function doPDF(){alert('PDF 내보내기:\n인쇄 창(Ctrl+P)에서 "PDF로 저장"을 선택하세요.');doPrint();}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 
-        try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${k}`, {
-                method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    contents: [{parts: [{text: `너는 문서 복원 전문가야. 
-                    다음은 PDF에서 추출한 텍스트 뭉치인데, 이 안에는 표(Table) 데이터가 섞여 있어. 
-                    1. 흩어진 글자들을 분석해서 원래 표였던 부분은 반드시 <table> 태그를 사용하여 완벽한 표로 복구해.
-                    2. 표의 테두리는 두껍게 설정하고, 헤더는 배경색을 넣어.
-                    3. 전체 내용을 깔끔한 글로벌 표준 문서 양식으로 교정해줘.
-                    \n\n원고 데이터: ${t}`}]}]
-                })
-            });
-            const data = await res.json();
-            let html = data.candidates[0].content.parts[0].text.replace(/```html|```/g, "");
-            out.innerHTML = html;
-            document.getElementById('dot').style.background = "#2ecc71";
-            updateLayout();
-        } catch(e) { alert("분석 실패: " + e); }
-    }
+function toggleSec(hd){
+  const bd=hd.nextElementSibling;if(!bd)return;
+  const arr=hd.querySelector('.arr');
+  if(bd.classList.contains('closed')){bd.classList.remove('closed');if(arr)arr.textContent='▾';}
+  else{bd.classList.add('closed');if(arr)arr.textContent='▸';}
+}
 
-    function exportPDF() {
-        const element = document.getElementById('pageContainer');
-        const opt = {
-            margin: 0,
-            filename: 'EAIM_Recovered_Report.pdf',
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: 'avoid-all' }
-        };
-        html2pdf().set(opt).from(element).save();
-    }
+function switchTab(tabEl,targetId){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
+  tabEl.classList.add('on');
+  document.getElementById(targetId).classList.add('on');
+}
 </script>
 </body>
 </html>
