@@ -190,28 +190,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
         <div class="range-row"><input type="range" id="lh" min="1.4" max="2.4" value="1.8" step=".1" oninput="applyFont()"><span class="rv" id="lh-v">1.8</span></div></div>
     </div>
   </div>
-  <div class="sec">
-    <div class="sec-hd" onclick="toggleSec(this)"><span>&#127979; 시험지 정보</span><span class="arr">&#9660;</span></div>
-    <div class="sec-bd">
-      <div class="fr"><label>학교명</label><input type="text" id="school" placeholder="&#9675;&#9675;초등학교" oninput="renderHdr()"></div>
-      <div class="fr2">
-        <div><label>학년</label><input type="text" id="grade" placeholder="6학년" oninput="renderHdr()"></div>
-        <div><label>반</label><input type="text" id="cls" placeholder="2반" oninput="renderHdr()"></div>
-      </div>
-      <div class="fr"><label>과목</label><input type="text" id="subj" placeholder="국어" oninput="renderHdr()"></div>
-      <div class="fr2">
-        <div><label>시험 종류</label>
-          <select id="etype" onchange="renderHdr()">
-            <option>1학기 중간</option><option>1학기 기말</option><option>2학기 중간</option>
-            <option>2학기 기말</option><option>단원평가</option><option>수행평가</option>
-          </select></div>
-        <div><label>총점</label><input type="number" id="total" value="100" oninput="renderHdr()"></div>
-      </div>
-      <div class="fr"><label>날짜</label><input type="text" id="edate" placeholder="2025년 6월 1일" oninput="renderHdr()"></div>
-      <div class="fr"><label>이름&#183;번호칸</label>
-        <select id="show-nm" onchange="renderHdr()"><option value="yes">표시</option><option value="no">숨김</option></select></div>
-    </div>
-  </div>
+
   <div class="sec">
     <div class="sec-hd" onclick="toggleSec(this)"><span>&#128203; 문제 유형 삽입</span><span class="arr">&#9660;</span></div>
     <div class="sec-bd">
@@ -252,7 +231,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
   <div id="paper-wrap">
     <div id="paper">
       <div id="paper-inner">
-        <div id="exam-hdr"></div>
         <div id="content-area"></div>
         <div id="exam-ftr" class="fmt-footer" style="display:none"></div>
       </div>
@@ -421,22 +399,7 @@ function doZoom(d){
   document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';
 }
 
-function renderHdr(){
-  var school=document.getElementById('school').value;
-  var grade=document.getElementById('grade').value;
-  var cls=document.getElementById('cls').value;
-  var subj=document.getElementById('subj').value;
-  var etype=document.getElementById('etype').value;
-  var total=document.getElementById('total').value;
-  var edate=document.getElementById('edate').value;
-  var showNm=document.getElementById('show-nm').value;
-  var parts=[school,grade,cls,subj,etype].filter(Boolean);
-  var title=parts.join(' ')||'시험지';
-  var nmBox='';
-  if(showNm==='yes')nmBox='<div style="display:flex;gap:14px;margin-top:8px;justify-content:flex-end"><div style="border:.5px solid #666;padding:3px 10px;font-size:10pt">학 번: ___________</div><div style="border:.5px solid #666;padding:3px 10px;font-size:10pt">이 름: ___________</div></div>';
-  var ea=appMode==='edit'?'contenteditable="true"':'';
-  document.getElementById('exam-hdr').innerHTML='<div class="fmt-header"><div id="hdr-title" style="font-size:17pt;font-weight:700;font-family:var(--serif);margin-bottom:4px" '+ea+'>'+esc(title)+'</div><div style="font-size:10pt;color:#555;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">'+(edate?'<span>'+esc(edate)+'</span>':'')+(total?'<span>총 배점: '+esc(total)+'점</span>':'')+'</div>'+nmBox+'</div>';
-}
+function renderHdr(){ /* 양식 이미지 배경 사용으로 헤더 자동생성 불필요 */ }
 
 function renderAll(){
   var ca=document.getElementById('content-area');
@@ -462,14 +425,11 @@ function attachEdit(){
     bc.addEventListener('blur',function(){var eb=bc.closest('.exam-block');if(eb)eb.classList.remove('selected');document.getElementById('sb-sel').textContent='준비';});
   });
   document.querySelectorAll('.btoolbar').forEach(function(t){t.style.display='flex';});
-  var ht=document.getElementById('hdr-title');
-  if(ht)ht.setAttribute('contenteditable','true');
 }
 
 function detachEdit(){
   document.querySelectorAll('.block-content').forEach(function(bc){bc.removeAttribute('contenteditable');bc.removeEventListener('blur',saveBlk);});
   document.querySelectorAll('.btoolbar').forEach(function(t){t.style.display='none';});
-  var ht=document.getElementById('hdr-title');if(ht)ht.removeAttribute('contenteditable');
 }
 
 function saveBlk(e){
